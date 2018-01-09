@@ -30,17 +30,20 @@
 COCOTB?=$(shell pwd)/../
 export COCOTB
 
-EXAMPLES := adder/tests \
-	    endian_swapper/tests \
-            axi_lite_slave/tests \
-						dff/tests \
+#1) list everything recursively
+#2) search for the pattern /tests: -- which returns test directories
+#3) remove the begining .
+#4) remove the ending :
+EXAMPLES := $(shell ls -R | grep /tests: | sed s'-.\/--' | sed s'/://')
 
 .PHONY: $(EXAMPLES)
 
 all: $(EXAMPLES)
+	$(info EXAMPLES is $(EXAMPLES))
 
 $(EXAMPLES):
 	@cd $@ && $(MAKE)
 
 clean:
+	$(info EXAMPLES is $(EXAMPLES))
 	$(foreach TEST, $(EXAMPLES), $(MAKE) -C $(TEST) clean;)
