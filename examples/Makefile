@@ -33,6 +33,7 @@ export COCOTB
 EXAMPLES := adder/tests \
 	    endian_swapper/tests \
             axi_lite_slave/tests \
+						dff/tests \
 
 .PHONY: $(EXAMPLES)
 
