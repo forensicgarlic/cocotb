@@ -55,7 +55,7 @@ class BitMonitor(Monitor):
             # Capture signal at rising edge of clock
             yield clkedge
             vec = self.signal.value
-            print("value is %s at time %s" % (vec, get_sim_time("ns")))
+            print("value of %s is %s at time %s" % (self.name, vec, get_sim_time("ns")))
             self._recv(vec)
 
 # ==============================================================================
@@ -89,7 +89,7 @@ class DFF_TB(object):
 
         # Reconstruct the input transactions from the pins
         # and send them to our 'model'
-        self.input_mon = BitMonitor("input", dut.d, dut.c,
+        self.input_mon = BitMonitor("input ", dut.d, dut.c,
                                     callback=self.model)
 
     def model(self, transaction):
