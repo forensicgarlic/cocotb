@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // =============================================================================
 // Authors:		Martin Zabel
 // 
@@ -35,5 +36,8 @@ module dff (c,d,q);
 	// here.
 	q <= d;
      end
-   
+     initial begin
+       $dumpfile ("dff.vcd");
+       $dumpvars(0, dff);
+     end
 endmodule // dff

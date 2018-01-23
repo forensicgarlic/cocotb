@@ -36,7 +36,8 @@ from cocotb.binary import BinaryValue
 from cocotb.regression import TestFactory
 from cocotb.scoreboard import Scoreboard
 from cocotb.result import TestFailure, TestSuccess
-
+from cocotb.clock import Clock
+from cocotb.utils import get_sim_time
 # ==============================================================================
 class BitMonitor(Monitor):
     """Observes single input or output of DUT."""
@@ -54,6 +55,7 @@ class BitMonitor(Monitor):
             # Capture signal at rising edge of clock
             yield clkedge
             vec = self.signal.value
+            print("value is %s at time %s" % (vec, get_sim_time("ns")))
             self._recv(vec)
 
 # ==============================================================================
@@ -116,15 +118,17 @@ class DFF_TB(object):
 def clock_gen(signal):
     """Generate the clock signal."""
     while True:
-        signal <= 0
-        yield Timer(5000) # ps
         signal <= 1
         yield Timer(5000) # ps
+        signal <= 0
+        yield Timer(5000) # ps
+
 
 # ==============================================================================
 @cocotb.coroutine
 def run_test(dut):
     """Setup testbench and run a test."""
+    #cocotb.fork(Clock(dut.c, 10000, "ps").start())
     cocotb.fork(clock_gen(dut.c))
     tb = DFF_TB(dut, BinaryValue(0,1))
     clkedge = RisingEdge(dut.c)
