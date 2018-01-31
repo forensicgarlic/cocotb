@@ -54,6 +54,7 @@ class BitMonitor(Monitor):
         while True:
             # Capture signal at rising edge of clock
             yield clkedge
+            yield Timer(0)
             vec = self.signal.value
             print("value of %s is %s at time %s" % (self.name, vec, get_sim_time("ns")))
             self._recv(vec)
