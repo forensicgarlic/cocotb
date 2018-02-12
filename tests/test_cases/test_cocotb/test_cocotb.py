@@ -632,6 +632,13 @@ def test_binary_value(dut):
     """
 
     vec = BinaryValue(value=0,bits=16)
+    dut._log.info("Checking accessing bits")
+    if vec.bits != 16:
+        raise TestFailure("bits aren't getting set correctly")
+    vec.bits = 17
+    if vec.bits != 17: 
+        raise TestFailure("bits aren't getting updated correctly")
+    
     dut._log.info("Checking default endianess is Big Endian.")
     if not vec.big_endian:
         raise TestFailure("The default endianess is Little Endian - was expecting Big Endian.")
