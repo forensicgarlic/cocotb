@@ -1,0 +1,281 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tutorial: Endian Swapper &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial: Ping" href="ping_tun_tap.html" />
+    <link rel="prev" title="Library Reference" href="library_reference.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="ping_tun_tap.html" title="Tutorial: Ping"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="library_reference.html" title="Library Reference"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tutorial-endian-swapper">
+<h1>Tutorial: Endian Swapper<a class="headerlink" href="#tutorial-endian-swapper" title="Permalink to this headline">¶</a></h1>
+<p>In this tutorial we’ll use some of the built-in features of Cocotb to quickly create a complex testbench.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">All the code and sample output from this example are available on <a class="reference external" href="http://www.edaplayground.com/s/example/199">EDA Playground</a></p>
+</div>
+<p>For the impatient this tutorial is provided as an example with Cocotb. You can run this example from a fresh checkout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">examples</span><span class="o">/</span><span class="n">endian_swapper</span><span class="o">/</span><span class="n">tests</span>
+<span class="n">make</span>
+</pre></div>
+</div>
+<div class="section" id="design">
+<h2>Design<a class="headerlink" href="#design" title="Permalink to this headline">¶</a></h2>
+<p>We have a relatively simplistic RTL block called the endian_swapper.  The DUT has three interfaces, all conforming to the Avalon standard:</p>
+<img alt="_images/endian_swapper_design.svg" src="_images/endian_swapper_design.svg" /><p>The DUT will swap the endianness of packets on the Avalon-ST bus if a configuration bit is set.  For every packet arriving on the “stream_in” interface the entire packet will be endian swapped if the configuration bit is set, otherwise the entire packet will pass through unmodified.</p>
+</div>
+<div class="section" id="testbench">
+<h2>Testbench<a class="headerlink" href="#testbench" title="Permalink to this headline">¶</a></h2>
+<p>To begin with we create a class to encapsulate all the common code for the testbench.  It is possible to write directed tests without using a testbench class however to encourage code re-use it is good practice to create a distinct class.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">EndianSwapperTB</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dut</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="n">dut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream_in</span>  <span class="o">=</span> <span class="n">AvalonSTDriver</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream_out</span> <span class="o">=</span> <span class="n">AvalonSTMonitor</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_out&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csr</span> <span class="o">=</span> <span class="n">AvalonMaster</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;csr&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoreboard</span> <span class="o">=</span> <span class="n">Scoreboard</span><span class="p">(</span><span class="n">dut</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoreboard</span><span class="o">.</span><span class="n">add_interface</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span><span class="p">)</span>
+
+        <span class="c1"># Reconstruct the input transactions from the pins and send them to our &#39;model&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream_in_recovered</span> <span class="o">=</span> <span class="n">AvalonSTMonitor</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With the above code we have created a testbench with the following structure:</p>
+<img alt="_images/endian_swapper_testbench.svg" src="_images/endian_swapper_testbench.svg" /><p>If we inspect this line-by-line:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">stream_in</span>  <span class="o">=</span> <span class="n">AvalonSTDriver</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here we’re creating an AvalonSTDriver instance. The constructor requires 3 arguments - a handle to the entity containing the interface (<strong>dut</strong>), the name of the interface (<strong>stream_in</strong>) and the associated clock with which to drive the interface (<strong>dut.clk</strong>).  The driver will auto-discover the signals for the interface, assuming that they follow the naming convention <strong>interface_name</strong> _ <em>signal</em>.</p>
+<p>In this case we have the following signals defined for the <strong>stream_in</strong> interface:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="11%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Name</th>
+<th class="head">Type</th>
+<th class="head">Description (from Avalon Specification)</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>stream_in_data</td>
+<td>data</td>
+<td>The data signal from the source to the sink</td>
+</tr>
+<tr class="row-odd"><td>stream_in_empty</td>
+<td>empty</td>
+<td>Indicates the number of symbols that are empty during cycles that contain the end of a packet</td>
+</tr>
+<tr class="row-even"><td>stream_in_valid</td>
+<td>valid</td>
+<td>Asserted by the source to qualify all other source to sink signals</td>
+</tr>
+<tr class="row-odd"><td>stream_in_startofpacket</td>
+<td>startofpacket</td>
+<td>Asserted by the source to mark the beginning of a packet</td>
+</tr>
+<tr class="row-even"><td>stream_in_endofpacket</td>
+<td>endofpacket</td>
+<td>Asserted by the source to mark the end of a packet</td>
+</tr>
+<tr class="row-odd"><td>stream_in_ready</td>
+<td>ready</td>
+<td>Asserted high to indicate that the sink can accept data</td>
+</tr>
+</tbody>
+</table>
+<p>By following the signal naming convention the driver can find the signals associated with this interface automatically.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">stream_out</span> <span class="o">=</span> <span class="n">AvalonSTMonitor</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_out&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">csr</span> <span class="o">=</span> <span class="n">AvalonMaster</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;csr&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We do the same to create the monitor on <strong>stream_out</strong> and the CSR interface.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">scoreboard</span> <span class="o">=</span> <span class="n">Scoreboard</span><span class="p">(</span><span class="n">dut</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">scoreboard</span><span class="o">.</span><span class="n">add_interface</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The above lines create a Scoreboard instance and attach it to the <strong>stream_out</strong> monitor instance.  The scoreboard is used to check that the DUT behaviour is correct.  The call to <strong>add_interface</strong> takes a Monitor instance as the first argument and the second argument is a mechanism for describing the expected output for that interface.  This could be a callable function but in this example a simple list of expected transactions is sufficient.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Reconstruct the input transactions from the pins and send them to our &#39;model&#39;</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">stream_in_recovered</span> <span class="o">=</span> <span class="n">AvalonSTMonitor</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally we create another Monitor instance, this time connected to the <strong>stream_in</strong> interface.  This is to reconstruct the transactions being driven into the DUT.  It’s good practice to use a monitor to reconstruct the transactions from the pin interactions rather than snooping them from a higher abstraction layer as we can gain confidence that our drivers and monitors are functioning correctly.  We also pass the keyword argument <strong>callback</strong> to the monitor constructor which will result in the supplied function being called for each transaction seen on the bus with the transaction as the first argument.  Our model function is quite straightforward in this case - we simply append the transaction to the expected output list and increment a counter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model the DUT based on the input transaction&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pkts_sent</span> <span class="o">+=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<div class="section" id="test-function">
+<h3>Test Function<a class="headerlink" href="#test-function" title="Permalink to this headline">¶</a></h3>
+<p>There are various ‘knobs’ we can tweak on this testbench to vary the behaviour:</p>
+<ul class="simple">
+<li>Packet size</li>
+<li>Backpressure on the <strong>stream_out</strong> interface</li>
+<li>Idle cycles on the <strong>stream_in</strong> interface</li>
+<li>Configuration switching of the endian swap register during the test.</li>
+</ul>
+<p>We want to run different variations of tests but they will all have a very similar structure so we create a common <code class="docutils literal notranslate"><span class="pre">run_test</span></code> function.  To generate backpressure on the <strong>stream_out</strong> interface we use the <code class="docutils literal notranslate"><span class="pre">BitDriver</span></code> class from <code class="docutils literal notranslate"><span class="pre">cocotb.drivers</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cocotb.coroutine</span>
+<span class="k">def</span> <span class="nf">run_test</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="n">data_in</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">config_coroutine</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">idle_inserter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">backpressure_inserter</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">cocotb</span><span class="o">.</span><span class="n">fork</span><span class="p">(</span><span class="n">Clock</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">())</span>
+    <span class="n">tb</span> <span class="o">=</span> <span class="n">EndianSwapperTB</span><span class="p">(</span><span class="n">dut</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="n">tb</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">stream_out_ready</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+
+    <span class="c1"># Start off any optional coroutines</span>
+    <span class="k">if</span> <span class="n">config_coroutine</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">cocotb</span><span class="o">.</span><span class="n">fork</span><span class="p">(</span><span class="n">config_coroutine</span><span class="p">(</span><span class="n">tb</span><span class="o">.</span><span class="n">csr</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">idle_inserter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">tb</span><span class="o">.</span><span class="n">stream_in</span><span class="o">.</span><span class="n">set_valid_generator</span><span class="p">(</span><span class="n">idle_inserter</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">backpressure_inserter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">tb</span><span class="o">.</span><span class="n">backpressure</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">backpressure_inserter</span><span class="p">())</span>
+
+    <span class="c1"># Send in the packets</span>
+    <span class="k">for</span> <span class="n">transaction</span> <span class="ow">in</span> <span class="n">data_in</span><span class="p">():</span>
+        <span class="k">yield</span> <span class="n">tb</span><span class="o">.</span><span class="n">stream_in</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
+
+    <span class="c1"># Wait at least 2 cycles where output ready is low before ending the test</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">dut</span><span class="o">.</span><span class="n">stream_out_ready</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+
+    <span class="n">pkt_count</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">tb</span><span class="o">.</span><span class="n">csr</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pkt_count</span><span class="o">.</span><span class="n">integer</span> <span class="o">!=</span> <span class="n">tb</span><span class="o">.</span><span class="n">pkts_sent</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;DUT recorded </span><span class="si">%d</span><span class="s2"> packets but tb counted </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">pkt_count</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">tb</span><span class="o">.</span><span class="n">pkts_sent</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dut</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;DUT correctly counted </span><span class="si">%d</span><span class="s2"> packets&quot;</span> <span class="o">%</span> <span class="n">pkt_count</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+
+    <span class="k">raise</span> <span class="n">tb</span><span class="o">.</span><span class="n">scoreboard</span><span class="o">.</span><span class="n">result</span>
+</pre></div>
+</div>
+<p>We can see that this test function creates an instance of the testbench, resets the DUT by running the coroutine <code class="docutils literal notranslate"><span class="pre">tb.reset()</span></code> and then starts off any optional coroutines passed in using the keyword arguments.  We then send in all the packets from <code class="docutils literal notranslate"><span class="pre">data_in</span></code>, ensure that all the packets have been received by waiting 2 cycles at the end.  We read the packet count and compare this with the number of packets.  Finally we use the <code class="docutils literal notranslate"><span class="pre">tb.scoreboard.result</span></code> to determine the status of the test.  If any transactions didn’t match the expected output then this member would be an instance of the <code class="docutils literal notranslate"><span class="pre">TestFailure</span></code> result.</p>
+</div>
+<div class="section" id="test-permutations">
+<h3>Test permutations<a class="headerlink" href="#test-permutations" title="Permalink to this headline">¶</a></h3>
+<p>Having defined a test function we can now auto-generate different permutations of tests using the <code class="docutils literal notranslate"><span class="pre">TestFactory</span></code> class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">factory</span> <span class="o">=</span> <span class="n">TestFactory</span><span class="p">(</span><span class="n">run_test</span><span class="p">)</span>
+<span class="n">factory</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;data_in&quot;</span><span class="p">,</span>                 <span class="p">[</span><span class="n">random_packet_sizes</span><span class="p">])</span>
+<span class="n">factory</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;config_coroutine&quot;</span><span class="p">,</span>        <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="n">randomly_switch_config</span><span class="p">])</span>
+<span class="n">factory</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;idle_inserter&quot;</span><span class="p">,</span>           <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="n">wave</span><span class="p">,</span> <span class="n">intermittent_single_cycles</span><span class="p">,</span> <span class="n">random_50_percent</span><span class="p">])</span>
+<span class="n">factory</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;backpressure_inserter&quot;</span><span class="p">,</span>   <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="n">wave</span><span class="p">,</span> <span class="n">intermittent_single_cycles</span><span class="p">,</span> <span class="n">random_50_percent</span><span class="p">])</span>
+<span class="n">factory</span><span class="o">.</span><span class="n">generate_tests</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This will generate 32 tests (named run_test_001 to run_test_032) with all possible permutations of options provided for each argument.  Note that we utilise some of the built-in generators to toggle backpressure and insert idle cycles.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tutorial: Endian Swapper</a><ul>
+<li><a class="reference internal" href="#design">Design</a></li>
+<li><a class="reference internal" href="#testbench">Testbench</a><ul>
+<li><a class="reference internal" href="#test-function">Test Function</a></li>
+<li><a class="reference internal" href="#test-permutations">Test permutations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="library_reference.html"
+                        title="previous chapter">Library Reference</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ping_tun_tap.html"
+                        title="next chapter">Tutorial: Ping</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/endian_swapper.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="ping_tun_tap.html" title="Tutorial: Ping"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="library_reference.html" title="Library Reference"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

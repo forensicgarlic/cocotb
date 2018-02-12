@@ -1,0 +1,668 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cocotb.binary &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for cocotb.binary</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="sd">&#39;&#39;&#39; Copyright (c) 2013 Potential Ventures Ltd</span>
+<span class="sd">Copyright (c) 2013 SolarFlare Communications Inc</span>
+<span class="sd">All rights reserved.</span>
+
+<span class="sd">Redistribution and use in source and binary forms, with or without</span>
+<span class="sd">modification, are permitted provided that the following conditions are met:</span>
+<span class="sd">    * Redistributions of source code must retain the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer.</span>
+<span class="sd">    * Redistributions in binary form must reproduce the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer in the</span>
+<span class="sd">      documentation and/or other materials provided with the distribution.</span>
+<span class="sd">    * Neither the name of Potential Ventures Ltd,</span>
+<span class="sd">      SolarFlare Communications Inc nor the</span>
+<span class="sd">      names of its contributors may be used to endorse or promote products</span>
+<span class="sd">      derived from this software without specific prior written permission.</span>
+
+<span class="sd">THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="sd">ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="sd">WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="sd">DISCLAIMED. IN NO EVENT SHALL POTENTIAL VENTURES LTD BE LIABLE FOR ANY</span>
+<span class="sd">DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="sd">(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="sd">LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="sd">ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="sd">(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="sd">SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. &#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">cocotb.utils</span> <span class="k">import</span> <span class="n">get_python_integer_types</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+<span class="n">resolve_x_to</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;COCOTB_RESOLVE_X&#39;</span><span class="p">,</span> <span class="s2">&quot;VALUE_ERROR&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">BinaryValue</span><span class="o">.</span><span class="n">_resolve_to_0</span><span class="p">:</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">BinaryValue</span><span class="o">.</span><span class="n">_resolve_to_1</span><span class="p">:</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">BinaryValue</span><span class="o">.</span><span class="n">_resolve_to_error</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">resolve_x_to</span> <span class="o">==</span> <span class="s2">&quot;VALUE_ERROR&quot;</span> <span class="ow">and</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to resolve to binary &gt;</span><span class="si">%s</span><span class="s2">&lt;&quot;</span> <span class="o">%</span> <span class="n">string</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">resolve_x_to</span> <span class="o">==</span> <span class="s2">&quot;ZEROS&quot;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">resolve_x_to</span> <span class="o">==</span> <span class="s2">&quot;ONES&quot;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">resolve_x_to</span> <span class="o">==</span> <span class="s2">&quot;RANDOM&quot;</span><span class="p">:</span>
+            <span class="n">bits</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0:b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">getrandbits</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">bits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">string</span>
+
+
+<span class="k">def</span> <span class="nf">_clog2</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;_clog2 can&#39;t take a negative&quot;</span><span class="p">)</span>
+    <span class="n">exp</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">exp</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">val</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exp</span>
+        <span class="n">exp</span> <span class="o">+=</span> <span class="mi">1</span>
+
+
+<span class="k">class</span> <span class="nc">BinaryRepresentation</span><span class="p">():</span>
+    <span class="n">UNSIGNED</span>         <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># noqa</span>
+    <span class="n">SIGNED_MAGNITUDE</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># noqa</span>
+    <span class="n">TWOS_COMPLEMENT</span>  <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># noqa</span>
+
+
+<div class="viewcode-block" id="BinaryValue"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue">[docs]</a><span class="k">class</span> <span class="nc">BinaryValue</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represenatation of values in binary format.</span>
+
+<span class="sd">    The underlying value can be set or accessed using three aliasing attributes</span>
+
+<span class="sd">        - BinaryValue.integer is an integer</span>
+<span class="sd">        - BinaryValue.signed_integer is a signed integer</span>
+<span class="sd">        - BinaryValue.binstr is a string of &quot;01xXzZ&quot;</span>
+<span class="sd">        - BinaryValue.buff is a binary buffer of bytes</span>
+
+<span class="sd">        - BinaryValue.value is an integer *** deprecated ***</span>
+
+<span class="sd">    For example:</span>
+
+<span class="sd">    &gt;&gt;&gt; vec = BinaryValue()</span>
+<span class="sd">    &gt;&gt;&gt; vec.integer = 42</span>
+<span class="sd">    &gt;&gt;&gt; print vec.binstr</span>
+<span class="sd">    101010</span>
+<span class="sd">    &gt;&gt;&gt; print repr(vec.buff)</span>
+<span class="sd">    &#39;*&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_resolve_to_0</span>     <span class="o">=</span> <span class="s2">&quot;-lL&quot;</span>  <span class="c1"># noqa</span>
+    <span class="n">_resolve_to_1</span>     <span class="o">=</span> <span class="s2">&quot;hH&quot;</span>  <span class="c1"># noqa</span>
+    <span class="n">_resolve_to_error</span> <span class="o">=</span> <span class="s2">&quot;xXzZuUwW&quot;</span>  <span class="c1"># Resolve to a ValueError() since these usually mean something is wrong</span>
+    <span class="n">_permitted_chars</span>  <span class="o">=</span> <span class="n">_resolve_to_0</span> <span class="o">+</span><span class="n">_resolve_to_1</span> <span class="o">+</span> <span class="n">_resolve_to_error</span> <span class="o">+</span> <span class="s2">&quot;01&quot;</span>  <span class="c1"># noqa</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bigEndian</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">binaryRepresentation</span><span class="o">=</span><span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">UNSIGNED</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Kwagrs:</span>
+<span class="sd">            Value (string or int or long): value to assign to the bus</span>
+
+<span class="sd">            bits (int): Number of bits to use for the underlying binary</span>
+<span class="sd">                        representation</span>
+
+<span class="sd">            bigEndian (bool): Interpret the binary as big-endian when</span>
+<span class="sd">                                converting to/from a string buffer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span> <span class="o">=</span> <span class="n">bigEndian</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binaryRepresentation</span> <span class="o">=</span> <span class="n">binaryRepresentation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">UNSIGNED</span>         <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_unsigned</span>   <span class="p">,</span>
+                            <span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">SIGNED_MAGNITUDE</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_signed_mag</span> <span class="p">,</span>
+                            <span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">TWOS_COMPLEMENT</span>  <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_twos_comp</span>  <span class="p">,</span>
+                            <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">UNSIGNED</span>         <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_unsigned</span>   <span class="p">,</span>
+                            <span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">SIGNED_MAGNITUDE</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_signed_mag</span> <span class="p">,</span>
+                            <span class="n">BinaryRepresentation</span><span class="o">.</span><span class="n">TWOS_COMPLEMENT</span>  <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_twos_comp</span>  <span class="p">,</span>
+                            <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_bits</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryValue.assign"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.assign">[docs]</a>    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decides how best to assign the value to the vector</span>
+
+<span class="sd">        We possibly try to be a bit too clever here by first of</span>
+<span class="sd">        all trying to assign the raw string as a binstring, however</span>
+<span class="sd">        if the string contains any characters that aren&#39;t 0, 1, X or Z</span>
+<span class="sd">        then we interpret the string as a binary buffer...</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">get_python_integer_types</span><span class="p">()):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buff</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_convert_to_unsigned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Attempt to assigned negative number to unsigned &#39;</span>
+                             <span class="s1">&#39;BinaryValue&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_unsigned</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+    <span class="k">def</span> <span class="nf">_convert_to_signed_mag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_signed_mag</span><span class="p">(</span><span class="s1">&#39;1&#39;</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_signed_mag</span><span class="p">(</span><span class="s1">&#39;0&#39;</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="n">binstr</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">binstr</span>
+
+    <span class="k">def</span> <span class="nf">_convert_to_twos_comp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">_clog2</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_twos_comp</span><span class="p">(</span><span class="n">binstr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_twos_comp</span><span class="p">(</span><span class="s1">&#39;0&#39;</span> <span class="o">+</span> <span class="nb">bin</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="n">binstr</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">binstr</span>
+
+    <span class="k">def</span> <span class="nf">_convert_from_unsigned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_convert_from_signed_mag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">rv</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="nf">_convert_from_twos_comp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invert</span><span class="p">(</span><span class="n">binstr</span><span class="p">)</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">binstr</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">rv</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="nf">_invert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">inverted</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">bit</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+                <span class="n">inverted</span> <span class="o">=</span> <span class="n">inverted</span> <span class="o">+</span> <span class="s1">&#39;1&#39;</span>
+            <span class="k">elif</span> <span class="n">bit</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+                <span class="n">inverted</span> <span class="o">=</span> <span class="n">inverted</span> <span class="o">+</span> <span class="s1">&#39;0&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inverted</span> <span class="o">=</span> <span class="n">inverted</span> <span class="o">+</span> <span class="n">bit</span>
+        <span class="k">return</span> <span class="n">inverted</span>
+
+    <span class="k">def</span> <span class="nf">_adjust_unsigned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;0&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+        <span class="k">elif</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING truncating value to match requested number of bits &quot;</span>
+                  <span class="s2">&quot;(</span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="nf">_adjust_signed_mag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pad/truncate the bit string to the correct length&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;0&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">rv</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">rv</span>
+        <span class="k">elif</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING truncating value to match requested number of bits &quot;</span>
+                  <span class="s2">&quot;(</span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="p">(</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="nf">_adjust_twos_comp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+        <span class="k">elif</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING truncating value to match requested number of bits &quot;</span>
+                  <span class="s2">&quot;(</span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="p">(</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+<div class="viewcode-block" id="BinaryValue.get_value"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;value is an integer representaion of the underlying vector&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">binaryRepresentation</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryValue.get_value_signed"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.get_value_signed">[docs]</a>    <span class="k">def</span> <span class="nf">get_value_signed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;value is an signed integer representaion of the underlying vector&quot;&quot;&quot;</span>
+        <span class="n">ival</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">)</span>
+        <span class="n">signbit</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ival</span> <span class="o">&amp;</span> <span class="n">signbit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ival</span>
+        <span class="k">else</span><span class="p">:</span></div>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="o">~</span><span class="n">ival</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">signbit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">integer</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">binaryRepresentation</span><span class="p">](</span><span class="n">integer</span><span class="p">)</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_value</span><span class="p">,</span> <span class="n">set_value</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                     <span class="s2">&quot;Integer access to the value *** deprecated ***&quot;</span><span class="p">)</span>
+    <span class="n">integer</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_value</span><span class="p">,</span> <span class="n">set_value</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="s2">&quot;Integer access to the value&quot;</span><span class="p">)</span>
+    <span class="n">signed_integer</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_value_signed</span><span class="p">,</span> <span class="n">set_value</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="s2">&quot;Signed integer access to the value&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryValue.get_buff"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.get_buff">[docs]</a>    <span class="k">def</span> <span class="nf">get_buff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attribute self.buff represents the value as a binary string buffer</span>
+
+<span class="sd">        &gt;&gt;&gt; &quot;0100000100101111&quot;.buff == &quot;\x41\x2F&quot;</span>
+<span class="sd">        True</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span> <span class="o">%</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">bits</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">8</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span> <span class="o">%</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> <span class="n">bits</span>
+
+        <span class="n">buff</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">while</span> <span class="n">bits</span><span class="p">:</span>
+            <span class="n">byte</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span>
+            <span class="n">bits</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">byte</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">buff</span> <span class="o">+=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">buff</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">+</span> <span class="n">buff</span></div>
+        <span class="k">return</span> <span class="n">buff</span>
+
+    <span class="k">def</span> <span class="nf">get_hex_buff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_buff</span><span class="p">()</span>
+        <span class="n">hstr</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%0*X</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bstr</span><span class="p">)</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">bstr</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">hstr</span>
+
+    <span class="k">def</span> <span class="nf">set_buff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buff</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">buff</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0:08b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">char</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0:08b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">char</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_adjust</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_adjust</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pad/truncate the bit string to the correct length&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">+</span> <span class="s2">&quot;0&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span>
+        <span class="k">elif</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING truncating value to match requested number of bits &quot;</span>
+                  <span class="s2">&quot;(</span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:]</span>
+
+    <span class="n">buff</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_buff</span><span class="p">,</span> <span class="n">set_buff</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;Access to the value as a buffer&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryValue.get_binstr"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.get_binstr">[docs]</a>    <span class="k">def</span> <span class="nf">get_binstr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attribute binstr is the binary representation stored as a string of</span>
+<span class="sd">        1s and 0s&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span>
+
+    <span class="k">def</span> <span class="nf">set_binstr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">char</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">BinaryValue</span><span class="o">.</span><span class="n">_permitted_chars</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Attempting to assign character </span><span class="si">%s</span><span class="s2"> to a </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                                 <span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="n">string</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_adjust</span><span class="p">()</span>
+
+    <span class="n">binstr</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_binstr</span><span class="p">,</span> <span class="n">set_binstr</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="s2">&quot;Access to the binary string&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryValue.get_bits"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.get_bits">[docs]</a>    <span class="k">def</span> <span class="nf">get_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attribute bits is the number of bits of the binary value&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span>
+
+    <span class="k">def</span> <span class="nf">set_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="n">bits</span>
+        <span class="k">if</span> <span class="n">bits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">)</span>
+
+    <span class="n">bits</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_bits</span><span class="p">,</span> <span class="n">set_bits</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;Access to the number of bits of the binary value&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">hex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">hex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">hex</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span>
+
+    <span class="k">def</span> <span class="nf">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__nonzero__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provide boolean testing of a binstr.</span>
+
+<span class="sd">        &gt;&gt;&gt; val = BinaryValue(&quot;0000&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; if val: print &quot;True&quot;</span>
+<span class="sd">        ... else:   print &quot;False&quot;</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; val.integer = 42</span>
+<span class="sd">        &gt;&gt;&gt; if val: print &quot;True&quot;</span>
+<span class="sd">        ... else:   print &quot;False&quot;</span>
+<span class="sd">        True</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BinaryValue</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BinaryValue</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">__cmp__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Comparison against other values&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BinaryValue</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">__cmp__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__int__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span>
+
+    <span class="k">def</span> <span class="nf">__long__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span>
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__imul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__divmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">//</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__idivmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">//</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__mod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">%</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__imod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integer</span> <span class="o">%</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__lshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__ilshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Preserves X values&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">other</span><span class="p">:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[:</span><span class="n">other</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__rshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__irshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Preserves X values&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="o">-</span><span class="n">other</span><span class="p">:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[:</span><span class="o">-</span><span class="n">other</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Preserves X values&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; BinaryValue uses verilog/vhdl style slices as opposed to python</span>
+<span class="sd">        style&#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">first</span><span class="p">,</span> <span class="n">second</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">stop</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">second</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;BinaryValue does not support negative &#39;</span>
+                                     <span class="s1">&#39;indices&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">second</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;High index greater than number of bits.&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&gt;</span> <span class="n">second</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Big Endian indices must be specified &#39;</span>
+                                     <span class="s1">&#39;low to high&#39;</span><span class="p">)</span>
+                <span class="n">_binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">first</span><span class="p">:(</span><span class="n">second</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">second</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;BinaryValue does not support negative &#39;</span>
+                                     <span class="s1">&#39;indices&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;High index greater than number of bits.&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">second</span> <span class="o">&gt;</span> <span class="n">first</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Litte Endian indices must be specified &#39;</span>
+                                     <span class="s1">&#39;high to low&#39;</span><span class="p">)</span>
+                <span class="n">high</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">second</span>
+                <span class="n">low</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">first</span>
+                <span class="n">_binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">low</span><span class="p">:</span><span class="n">high</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Index greater than number of bits.&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="n">_binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">BinaryValue</span><span class="p">(</span><span class="n">bits</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">_binstr</span><span class="p">),</span> <span class="n">bigEndian</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">,</span>
+                         <span class="n">binaryRepresentation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">binaryRepresentation</span><span class="p">)</span>
+        <span class="n">rv</span><span class="o">.</span><span class="n">set_binstr</span><span class="p">(</span><span class="n">_binstr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; BinaryValue uses verilog/vhdl style slices as opposed to python</span>
+<span class="sd">        style&#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">get_python_integer_types</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;BinaryValue slices only accept string or integer values&#39;</span><span class="p">)</span>
+
+        <span class="c1"># convert integer to string</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">get_python_integer_types</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+                <span class="n">num_slice_bits</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">key</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">num_slice_bits</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Integer must be positive&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_slice_bits</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Integer is too large for the specified slice &#39;</span>
+                                 <span class="s1">&#39;length&#39;</span><span class="p">)</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="s2">&quot;{:0</span><span class="si">{width}</span><span class="s2">b}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">num_slice_bits</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">first</span><span class="p">,</span> <span class="n">second</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">stop</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">second</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;BinaryValue does not support negative &#39;</span>
+                                     <span class="s1">&#39;indices&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">second</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;High index greater than number of bits.&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&gt;</span> <span class="n">second</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Big Endian indices must be specified &#39;</span>
+                                     <span class="s1">&#39;low to high&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">second</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">first</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;String length must be equal to slice &#39;</span>
+                                     <span class="s1">&#39;length&#39;</span><span class="p">)</span>
+                <span class="n">slice_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[:</span><span class="n">first</span><span class="p">]</span>
+                <span class="n">slice_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">second</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="n">slice_1</span> <span class="o">+</span> <span class="n">val</span> <span class="o">+</span> <span class="n">slice_2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">second</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;BinaryValue does not support negative &#39;</span>
+                                     <span class="s1">&#39;indices&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">first</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;High index greater than number of bits.&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">second</span> <span class="o">&gt;</span> <span class="n">first</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Litte Endian indices must be specified &#39;</span>
+                                     <span class="s1">&#39;high to low&#39;</span><span class="p">)</span>
+                <span class="n">high</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">second</span>
+                <span class="n">low</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">first</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;String length must be equal to slice &#39;</span>
+                                     <span class="s1">&#39;length&#39;</span><span class="p">)</span>
+                <span class="n">slice_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[:</span><span class="n">low</span><span class="p">]</span>
+                <span class="n">slice_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">high</span><span class="p">:]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="n">slice_1</span> <span class="o">+</span> <span class="n">val</span> <span class="o">+</span> <span class="n">slice_2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;String length must be equal to slice &#39;</span>
+                                 <span class="s1">&#39;length&#39;</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Index greater than number of bits.&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[:</span><span class="n">index</span><span class="p">]</span> <span class="o">+</span> <span class="n">val</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">val</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">binstr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="o">-</span><span class="n">index</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">]</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

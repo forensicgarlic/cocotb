@@ -1,0 +1,366 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Quickstart Guide &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Build options and Environment Variables" href="building.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="building.html" title="Build options and Environment Variables"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="Introduction"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="quickstart-guide">
+<h1>Quickstart Guide<a class="headerlink" href="#quickstart-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="installing-cocotb">
+<h2>Installing cocotb<a class="headerlink" href="#installing-cocotb" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="pre-requisites">
+<h3>Pre-requisites<a class="headerlink" href="#pre-requisites" title="Permalink to this headline">¶</a></h3>
+<p>Cocotb has the following requirements:</p>
+<ul class="simple">
+<li>Python 2.6+</li>
+<li>Python-dev packages</li>
+<li>GCC and associated development packages</li>
+<li>GNU Make</li>
+<li>A Verilog simulator</li>
+</ul>
+<p>Internal development is performed on Linux Mint 17 (x64). We also use Redhat 6.5(x64). Other Redhat and Ubuntu based distributions (x32 and x64) should work too but due fragmented nature of Linux we can not test everything. Instructions are provided for the main distributions we use.</p>
+</div>
+<div class="section" id="linux-native-arch-installation">
+<h3>Linux native arch installation<a class="headerlink" href="#linux-native-arch-installation" title="Permalink to this headline">¶</a></h3>
+<p>Ubuntu based installation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; sudo apt-get install git make gcc g++ swig python-dev
+</pre></div>
+</div>
+<p>This will allow building of the Cocotb libs for use with a 64 bit native simulator. If a 32 bit simulator is being used then additional steps to install 32bit development libraries and python are needed.</p>
+<p>Redhat based installation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; sudo yum install gcc gcc-c++ libstdc++-devel swig python-devel
+</pre></div>
+</div>
+<p>This will allow building of the Cocotb libs for use with a 64 bit native simulator. If a 32 bit simulator is being used then additional steps to install 32bit development libraries and python are needed.</p>
+</div>
+<div class="section" id="bit-python">
+<h3>32 bit Python<a class="headerlink" href="#bit-python" title="Permalink to this headline">¶</a></h3>
+<p>Additional development libraries are needed for building 32bit python on 64 bit systems.</p>
+<p>Ubuntu based installation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; sudo apt-get install libx32gcc1 gcc-4.8-multilib lib32stdc++-4.8-dev
+</pre></div>
+</div>
+<p>Replace 4.8 with the version of gcc that was installed on the system in the step above. Unlike on Redhat where 32 bit python can co-exist with native python ubuntu requires the source to be downloaded and built.</p>
+<p>Redhat based installation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; sudo yum install glibc.i686 glibc-devel.i386 libgcc.i686 libstdc++-devel.i686
+</pre></div>
+</div>
+<p>Specific releases can be downloaded from <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a> .</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; wget https://www.python.org/ftp/python/2.7.9/Python-2.7.9.tgz
+$&gt; tar xvf Python-2.7.9.tgz
+$&gt; <span class="nb">cd</span> Python-2.7.9
+$&gt; <span class="nb">export</span> <span class="nv">PY32_DIR</span><span class="o">=</span>/opt/pym32
+$&gt; ./configure <span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;gcc -m32&quot;</span> <span class="nv">LDFLAGS</span><span class="o">=</span><span class="s2">&quot;-L/lib32 -L/usr/lib32 -Lpwd/lib32 -Wl,-rpath,/lib32 -Wl,-rpath,</span><span class="nv">$PY32_DIR</span><span class="s2">/lib&quot;</span> --prefix<span class="o">=</span><span class="nv">$PY32_DIR</span> --enable-shared
+$&gt; make
+$&gt; sudo make install
+</pre></div>
+</div>
+<p>Cocotb can now be built against 32bit python by setting the architecture and placing the 32bit python ahead of the native version in the path when running a test</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; <span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span>/opt/pym32/bin
+$&gt; <span class="nb">cd</span> &lt;cocotb_dir&gt;
+$&gt; <span class="nv">ARCH</span><span class="o">=</span>i686 make
+</pre></div>
+</div>
+</div>
+<div class="section" id="windows-7-installation">
+<h3>Windows 7 installation<a class="headerlink" href="#windows-7-installation" title="Permalink to this headline">¶</a></h3>
+<p>Recent work has been done with the support of the Cocotb community to enable Windows support using the MinGW/Msys environment. Download the MinGQ installer from.</p>
+<p><a class="reference external" href="http://sourceforge.net/projects/mingw/files/latest/download?source=files">http://sourceforge.net/projects/mingw/files/latest/download?source=files</a> .</p>
+<p>Run the GUI installer and specify a directory you would like the environment installed in. The installer will retrieve a list of possible packages, when this is done press continue. The MinGW Installation Manager is then launched.</p>
+<p>The following packages need selecting by checking the tick box and selecting “Mark for installation”</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Basic Installation
+  -- mingw-developer-tools
+  -- mingw32-base
+  -- mingw32-gcc-g++
+  -- msys-base
+</pre></div>
+</div>
+<p>From the Installation menu then select “Apply Changes”, in the next dialog select “Apply”.</p>
+<p>When installed a shell can be opened using the “msys.bat” file located under the &lt;install_dir&gt;/msys/1.0/</p>
+<p>Python can be downloaded from <a class="reference external" href="https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi">https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi</a>, other versions of python can be used as well. Run the installer and download to your chosen location.</p>
+<p>It is beneficial to add the path to Python to the windows system PATH variable so it can be used easily from inside Msys.</p>
+<p>Once inside the Msys shell commands as given here will work as expected.</p>
+</div>
+<div class="section" id="mac-packages">
+<h3>MAC Packages<a class="headerlink" href="#mac-packages" title="Permalink to this headline">¶</a></h3>
+<p>You need a few packages installed to get cocotb running on mac.
+Installing a package manager really helps things out here.</p>
+<p><a href="#id2"><span class="problematic" id="id3">Brew_</span></a> seems to be the most popular, so we’ll assume you have that installed.
+.. _Brew: <a class="reference external" href="http://www.brew.sh">http://www.brew.sh</a></p>
+</div>
+<div class="section" id="running-an-example">
+<h3>Running an example<a class="headerlink" href="#running-an-example" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; git clone https://github.com/potentialventures/cocotb
+$&gt; <span class="nb">cd</span> cocotb/examples/endian_swapper/tests
+$&gt; make
+</pre></div>
+</div>
+<p>To run a test using a different simulator:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; make <span class="nv">SIM</span><span class="o">=</span>vcs
+</pre></div>
+</div>
+</div>
+<div class="section" id="running-a-vhdl-example">
+<h3>Running a VHDL example<a class="headerlink" href="#running-a-vhdl-example" title="Permalink to this headline">¶</a></h3>
+<p>The endian swapper example includes both a VHDL and Verilog RTL implementation.  The Cocotb testbench can execute against either implementation using VPI for Verilog and VHPI/FLI for VHDL.  To run the test suite against the VHDL implementation use the following command (a VHPI or FLI capable simulator must be used):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; make <span class="nv">SIM</span><span class="o">=</span>aldec <span class="nv">TOPLEVEL_LANG</span><span class="o">=</span>vhdl
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="using-cocotb">
+<h2>Using Cocotb<a class="headerlink" href="#using-cocotb" title="Permalink to this headline">¶</a></h2>
+<p>A typical Cocotb testbench requires no additional RTL code.
+The Design Under Test (DUT) is instantiated as the toplevel in the simulator without any wrapper code.
+Cocotb drives stimulus onto the inputs to the DUT and monitors the outputs directly from Python.</p>
+<div class="section" id="creating-a-makefile">
+<h3>Creating a Makefile<a class="headerlink" href="#creating-a-makefile" title="Permalink to this headline">¶</a></h3>
+<p>To create a Cocotb test we typically have to create a Makefile.  Cocotb provides
+rules which make it easy to get started.  We simply inform Cocotb of the
+source files we need compiling, the toplevel entity to instantiate and the
+python test script to load.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">VERILOG_SOURCES</span> <span class="o">=</span> <span class="k">$(</span>PWD<span class="k">)</span>/submodule.sv <span class="k">$(</span>PWD<span class="k">)</span>/my_design.sv
+<span class="nv">TOPLEVEL</span><span class="o">=</span>my_design
+<span class="nv">MODULE</span><span class="o">=</span>test_my_design
+include <span class="k">$(</span>COCOTB<span class="k">)</span>/makefiles/Makefile.inc
+include <span class="k">$(</span>COCOTB<span class="k">)</span>/makefiles/Makefile.sim
+</pre></div>
+</div>
+<p>We would then create a file called <code class="docutils literal notranslate"><span class="pre">test_my_design.py</span></code> containing our tests.</p>
+</div>
+<div class="section" id="creating-a-test">
+<h3>Creating a test<a class="headerlink" href="#creating-a-test" title="Permalink to this headline">¶</a></h3>
+<p>The test is written in Python.  Assuming we have a toplevel port called <code class="docutils literal notranslate"><span class="pre">clk</span></code>
+we could create a test file containing the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cocotb</span>
+<span class="kn">from</span> <span class="nn">cocotb.triggers</span> <span class="kn">import</span> <span class="n">Timer</span>
+
+<span class="nd">@cocotb.test</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_first_test</span><span class="p">(</span><span class="n">dut</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Try accessing the design</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running test!&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">cycle</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">dut</span><span class="o">.</span><span class="n">clk</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">yield</span> <span class="n">Timer</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="n">dut</span><span class="o">.</span><span class="n">clk</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">yield</span> <span class="n">Timer</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running test!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will drive a square wave clock onto the <code class="docutils literal notranslate"><span class="pre">clk</span></code> port of the toplevel.</p>
+</div>
+<div class="section" id="accessing-the-design">
+<h3>Accessing the design<a class="headerlink" href="#accessing-the-design" title="Permalink to this headline">¶</a></h3>
+<p>When cocotb initialises it finds the top-level instantiation in the simulator and creates a handle called <strong>dut</strong>.
+Top-level signals can be accessed using the “dot” notation used for accessing object attributes in Python.
+The same mechanism can be used to access signals inside the design.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get a reference to the &quot;clk&quot; signal on the top-level</span>
+<span class="n">clk</span> <span class="o">=</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span>
+
+<span class="c1"># Get a reference to a register &quot;count&quot; in a sub-block &quot;inst_sub_block&quot;</span>
+<span class="n">count</span> <span class="o">=</span> <span class="n">dut</span><span class="o">.</span><span class="n">inst_sub_block</span><span class="o">.</span><span class="n">count</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="assigning-values-to-signals">
+<h3>Assigning values to signals<a class="headerlink" href="#assigning-values-to-signals" title="Permalink to this headline">¶</a></h3>
+<p>Values can be assigned to signals using either the .value property of a handle object or using direct assignment while traversing the hierarchy.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get a reference to the &quot;clk&quot; signal and assign a value</span>
+<span class="n">clk</span> <span class="o">=</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span>
+<span class="n">clk</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="c1"># Direct assignment through the hierarchy</span>
+<span class="n">dut</span><span class="o">.</span><span class="n">input_signal</span> <span class="o">=</span> <span class="mi">12</span>
+
+<span class="c1"># Assign a value to a memory deep in the hierarchy</span>
+<span class="n">dut</span><span class="o">.</span><span class="n">sub_block</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reading-values-from-signals">
+<h3>Reading values from signals<a class="headerlink" href="#reading-values-from-signals" title="Permalink to this headline">¶</a></h3>
+<p>Accessing the .value property of a handle object will return a <code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryValue</span></code> object.  Any unresolved bits are preserved and can be accessed using the binstr attribute, or a resolved integer value can be accessed using the value attribute.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Read a value back from the dut</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">count</span> <span class="o">=</span> <span class="n">dut</span><span class="o">.</span><span class="n">counter</span><span class="o">.</span><span class="n">value</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">count</span><span class="o">.</span><span class="n">binstr</span>
+<span class="go">1X1010</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Resolve the value to an integer (X or Z treated as 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">count</span><span class="o">.</span><span class="n">integer</span>
+<span class="go">42</span>
+</pre></div>
+</div>
+<p>We can also cast the signal handle directly to an integer:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">int</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">counter</span><span class="p">)</span>
+<span class="go">42</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="parallel-and-sequential-execution-of-coroutines">
+<h3>Parallel and sequential execution of coroutines<a class="headerlink" href="#parallel-and-sequential-execution-of-coroutines" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cocotb.coroutine</span>
+<span class="k">def</span> <span class="nf">reset_dut</span><span class="p">(</span><span class="n">reset_n</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+    <span class="n">reset_n</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+    <span class="k">yield</span> <span class="n">Timer</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>
+    <span class="n">reset_n</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+    <span class="n">reset_n</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reset complete&quot;</span><span class="p">)</span>
+
+<span class="nd">@cocotb.test</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">parallel_example</span><span class="p">(</span><span class="n">dut</span><span class="p">):</span>
+    <span class="n">reset_n</span> <span class="o">=</span> <span class="n">dut</span><span class="o">.</span><span class="n">reset</span>
+
+    <span class="c1"># This will call reset_dut sequentially</span>
+    <span class="c1"># Execution will block until reset_dut has completed</span>
+    <span class="k">yield</span> <span class="n">reset_dut</span><span class="p">(</span><span class="n">reset_n</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;After reset&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Call reset_dut in parallel with this coroutine</span>
+    <span class="n">reset_thread</span> <span class="o">=</span> <span class="n">cocotb</span><span class="o">.</span><span class="n">fork</span><span class="p">(</span><span class="n">reset_dut</span><span class="p">(</span><span class="n">reset_n</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="n">Timer</span><span class="p">(</span><span class="mi">250</span><span class="p">)</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;During reset (reset_n = </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">reset_n</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="c1"># Wait for the other thread to complete</span>
+    <span class="k">yield</span> <span class="n">reset_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;After reset&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id1">
+<h3>Creating a test<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cocotb</span>
+<span class="kn">from</span> <span class="nn">cocotb.triggers</span> <span class="kn">import</span> <span class="n">Timer</span>
+
+<span class="nd">@cocotb.test</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">my_first_test</span><span class="p">(</span><span class="n">dut</span><span class="p">):</span>
+
+    <span class="c1"># drive the reset signal on the dut</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">reset_n</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+    <span class="k">yield</span> <span class="n">Timer</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">reset_n</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Quickstart Guide</a><ul>
+<li><a class="reference internal" href="#installing-cocotb">Installing cocotb</a><ul>
+<li><a class="reference internal" href="#pre-requisites">Pre-requisites</a></li>
+<li><a class="reference internal" href="#linux-native-arch-installation">Linux native arch installation</a></li>
+<li><a class="reference internal" href="#bit-python">32 bit Python</a></li>
+<li><a class="reference internal" href="#windows-7-installation">Windows 7 installation</a></li>
+<li><a class="reference internal" href="#mac-packages">MAC Packages</a></li>
+<li><a class="reference internal" href="#running-an-example">Running an example</a></li>
+<li><a class="reference internal" href="#running-a-vhdl-example">Running a VHDL example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-cocotb">Using Cocotb</a><ul>
+<li><a class="reference internal" href="#creating-a-makefile">Creating a Makefile</a></li>
+<li><a class="reference internal" href="#creating-a-test">Creating a test</a></li>
+<li><a class="reference internal" href="#accessing-the-design">Accessing the design</a></li>
+<li><a class="reference internal" href="#assigning-values-to-signals">Assigning values to signals</a></li>
+<li><a class="reference internal" href="#reading-values-from-signals">Reading values from signals</a></li>
+<li><a class="reference internal" href="#parallel-and-sequential-execution-of-coroutines">Parallel and sequential execution of coroutines</a></li>
+<li><a class="reference internal" href="#id1">Creating a test</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="introduction.html"
+                        title="previous chapter">Introduction</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="building.html"
+                        title="next chapter">Build options and Environment Variables</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/quickstart.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="building.html" title="Build options and Environment Variables"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="Introduction"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

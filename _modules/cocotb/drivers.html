@@ -1,0 +1,416 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cocotb.drivers &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for cocotb.drivers</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/bin/env python</span>
+
+<span class="sd">&#39;&#39;&#39; Copyright (c) 2013 Potential Ventures Ltd</span>
+<span class="sd">Copyright (c) 2013 SolarFlare Communications Inc</span>
+<span class="sd">All rights reserved.</span>
+
+<span class="sd">Redistribution and use in source and binary forms, with or without</span>
+<span class="sd">modification, are permitted provided that the following conditions are met:</span>
+<span class="sd">    * Redistributions of source code must retain the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer.</span>
+<span class="sd">    * Redistributions in binary form must reproduce the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer in the</span>
+<span class="sd">      documentation and/or other materials provided with the distribution.</span>
+<span class="sd">    * Neither the name of Potential Ventures Ltd,</span>
+<span class="sd">      SolarFlare Communications Inc nor the</span>
+<span class="sd">      names of its contributors may be used to endorse or promote products</span>
+<span class="sd">      derived from this software without specific prior written permission.</span>
+
+<span class="sd">THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="sd">ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="sd">WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="sd">DISCLAIMED. IN NO EVENT SHALL POTENTIAL VENTURES LTD BE LIABLE FOR ANY</span>
+<span class="sd">DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="sd">(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="sd">LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="sd">ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="sd">(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="sd">SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. &#39;&#39;&#39;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set of common driver base classes</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">deque</span>
+
+<span class="kn">import</span> <span class="nn">cocotb</span>
+<span class="kn">from</span> <span class="nn">cocotb.decorators</span> <span class="k">import</span> <span class="n">coroutine</span>
+<span class="kn">from</span> <span class="nn">cocotb.triggers</span> <span class="k">import</span> <span class="p">(</span><span class="n">Event</span><span class="p">,</span> <span class="n">RisingEdge</span><span class="p">,</span> <span class="n">ReadOnly</span><span class="p">,</span> <span class="n">Timer</span><span class="p">,</span> <span class="n">NextTimeStep</span><span class="p">,</span>
+                             <span class="n">Edge</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cocotb.bus</span> <span class="k">import</span> <span class="n">Bus</span>
+<span class="kn">from</span> <span class="nn">cocotb.log</span> <span class="k">import</span> <span class="n">SimLog</span>
+<span class="kn">from</span> <span class="nn">cocotb.result</span> <span class="k">import</span> <span class="n">ReturnValue</span>
+
+
+<span class="k">class</span> <span class="nc">BitDriver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Drives a signal onto a single bit</span>
+
+<span class="sd">    Useful for exercising ready / valid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">clk</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">=</span> <span class="n">signal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clk</span> <span class="o">=</span> <span class="n">clk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span> <span class="o">=</span> <span class="n">generator</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cr</span> <span class="o">=</span> <span class="n">cocotb</span><span class="o">.</span><span class="n">fork</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cr_twiddler</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cr</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+
+    <span class="nd">@cocotb</span><span class="o">.</span><span class="n">coroutine</span>
+    <span class="k">def</span> <span class="nf">_cr_twiddler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">generator</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No generator provided!&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span> <span class="o">=</span> <span class="n">generator</span>
+
+        <span class="n">edge</span> <span class="o">=</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clk</span><span class="p">)</span>
+
+        <span class="c1"># Actual thread</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">on</span><span class="p">,</span> <span class="n">off</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_generator</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">on</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">edge</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">off</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">edge</span>
+
+
+<div class="viewcode-block" id="Driver"><a class="viewcode-back" href="../../library_reference.html#cocotb.drivers.Driver">[docs]</a><span class="k">class</span> <span class="nc">Driver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Class defining the standard interface for a driver within a testbench</span>
+
+<span class="sd">    The driver is responsible for serialising transactions onto the physical</span>
+<span class="sd">    pins of the interface.  This may consume simulation time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for a driver instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># self._busy = Lock()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span> <span class="o">=</span> <span class="n">Event</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Driver._pending&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sendQ</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+
+        <span class="c1"># Subclasses may already set up logging</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;log&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SimLog</span><span class="p">(</span><span class="s2">&quot;cocotb.driver.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+        <span class="c1"># Create an independent coroutine which can send stuff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="o">=</span> <span class="n">cocotb</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_thread</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Driver.append"><a class="viewcode-back" href="../../library_reference.html#cocotb.drivers.Driver.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Queue up a transaction to be sent over the bus.</span>
+
+<span class="sd">        Mechanisms are provided to permit the caller to know when the</span>
+<span class="sd">        transaction is processed</span>
+
+<span class="sd">        callback: optional function to be called when the transaction has been</span>
+<span class="sd">        sent</span>
+
+<span class="sd">        event: event to be set when the tansaction has been sent</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sendQ</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">transaction</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">event</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Driver.clear"><a class="viewcode-back" href="../../library_reference.html#cocotb.drivers.Driver.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clear any queued transactions without sending them onto the bus</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sendQ</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Blocking send call (hence must be &quot;yielded&quot; rather than called)</span>
+
+<span class="sd">        Sends the transaction over the bus</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transaction (any): the transaction to send</span>
+
+<span class="sd">        Kwargs:</span>
+<span class="sd">            sync (boolean): synchronise the transfer by waiting for risingedge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send</span><span class="p">(</span><span class="n">transaction</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="n">sync</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_driver_send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        actual impementation of the send.</span>
+
+<span class="sd">        subclasses should override this method to implement the actual send</span>
+<span class="sd">        routine</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Subclasses of Driver should define a &quot;</span>
+                                  <span class="s2">&quot;_driver_send coroutine&quot;</span><span class="p">)</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        assumes the caller has already acquired the busy lock</span>
+
+<span class="sd">        releases busy lock once sending is complete</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_driver_send</span><span class="p">(</span><span class="n">transaction</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="n">sync</span><span class="p">)</span>
+
+        <span class="c1"># Notify the world that this transaction is complete</span>
+        <span class="k">if</span> <span class="n">event</span><span class="p">:</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">callback</span><span class="p">:</span>
+            <span class="n">callback</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
+
+        <span class="c1"># No longer hogging the bus</span>
+        <span class="c1"># self.busy.release()</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_send_thread</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+
+            <span class="c1"># Sleep until we have something to send</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sendQ</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+            <span class="n">synchronised</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Send in all the queued packets,</span>
+            <span class="c1"># only synchronise on the first send</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sendQ</span><span class="p">:</span>
+                <span class="n">transaction</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sendQ</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Sending queued packet...&quot;</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send</span><span class="p">(</span><span class="n">transaction</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span>
+                                 <span class="n">sync</span><span class="o">=</span><span class="ow">not</span> <span class="n">synchronised</span><span class="p">)</span></div>
+                <span class="n">synchronised</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<span class="k">class</span> <span class="nc">BusDriver</span><span class="p">(</span><span class="n">Driver</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper around common functionality for busses which have:</span>
+<span class="sd">        a list of _signals (class attribute)</span>
+<span class="sd">        a list of _optional_signals (class attribute)</span>
+<span class="sd">        a clock</span>
+<span class="sd">        a name</span>
+<span class="sd">        an entity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_optional_signals</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">clock</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            entity (SimHandle) : a handle to the simulator entity</span>
+
+<span class="sd">            name (str) : name of this bus. None for nameless bus, e.g.</span>
+<span class="sd">                         bus-signals in an interface or a modport</span>
+<span class="sd">                         (untested on struct/record,</span>
+<span class="sd">                          but could work here as well)</span>
+<span class="sd">            clock (SimHandle) : A handle to the clock associated with this bus</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SimLog</span><span class="p">(</span><span class="s2">&quot;cocotb.</span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">entity</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="n">Driver</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entity</span> <span class="o">=</span> <span class="n">entity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bus</span> <span class="o">=</span> <span class="n">Bus</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">_optional_signals</span><span class="p">,</span> <span class="n">array_idx</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;array_idx&quot;</span><span class="p">))</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_driver_send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sync</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bus</span> <span class="o">&lt;=</span> <span class="n">transaction</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_wait_for_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This method will return with the specified signal</span>
+<span class="sd">        has hit logic 1. The state will be in the ReadOnly phase</span>
+<span class="sd">        so sim will need to move to NextTimeStep before</span>
+<span class="sd">        registering more callbacks can occour</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">yield</span> <span class="n">ReadOnly</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">signal</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">integer</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">ReadOnly</span><span class="p">()</span>
+        <span class="k">yield</span> <span class="n">NextTimeStep</span><span class="p">()</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_wait_for_nsignal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This method will return with the specified signal</span>
+<span class="sd">        has hit logic 0. The state will be in the ReadOnly phase</span>
+<span class="sd">        so sim will need to move to NextTimeStep before</span>
+<span class="sd">        registering more callbacks can occour</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">yield</span> <span class="n">ReadOnly</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">signal</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">integer</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">Edge</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">ReadOnly</span><span class="p">()</span>
+        <span class="k">yield</span> <span class="n">NextTimeStep</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provide the name of the bus&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ValidatedBusDriver</span><span class="p">(</span><span class="n">BusDriver</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Same as a BusDriver except we support an optional generator to control</span>
+<span class="sd">    which cycles are valid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">clock</span><span class="p">,</span> <span class="n">valid_generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            entity (SimHandle) : a handle to the simulator entity</span>
+
+<span class="sd">            name (str) : name of this bus</span>
+
+<span class="sd">            clock (SimHandle) : A handle to the clock associated with this bus</span>
+<span class="sd">        Kwargs:</span>
+<span class="sd">            valid_generator (generator): a generator that yields tuples  of</span>
+<span class="sd">                                        (valid, invalid) cycles to insert</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">BusDriver</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">clock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_valid_generator</span><span class="p">(</span><span class="n">valid_generator</span><span class="o">=</span><span class="n">valid_generator</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_next_valids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optionally insert invalid cycles every N cycles</span>
+<span class="sd">        Generator should return a tuple with the number of cycles to be</span>
+<span class="sd">        on followed by the number of cycles to be off.</span>
+<span class="sd">        The &#39;on&#39; cycles should be non-zero, we skip invalid generator entries</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">on</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">on</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">off</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valid_generator</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                    <span class="c1"># If the generator runs out stop inserting non-valid cycles</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">on</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Valid generator exhausted, not inserting &quot;</span>
+                                  <span class="s2">&quot;non-valid cycles anymore&quot;</span><span class="p">)</span>
+                    <span class="k">return</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Will be on for </span><span class="si">%d</span><span class="s2"> cycles, off for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                           <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">off</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Valid every clock cycle</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">off</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Not using valid generator&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_valid_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valid_generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a new valid generator for this bus</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid_generator</span> <span class="o">=</span> <span class="n">valid_generator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_next_valids</span><span class="p">()</span>
+
+
+<span class="nd">@cocotb</span><span class="o">.</span><span class="n">coroutine</span>
+<span class="k">def</span> <span class="nf">polled_socket_attachment</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">sock</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Non-blocking socket attachment that queues any payload received from the</span>
+<span class="sd">    socket to be queued for sending into the driver</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">socket</span><span class="o">,</span> <span class="nn">errno</span>
+    <span class="n">sock</span><span class="o">.</span><span class="n">setblocking</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">driver</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Listening for data from </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">sock</span><span class="p">))</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">driver</span><span class="o">.</span><span class="n">clock</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="n">errno</span><span class="o">.</span><span class="n">EAGAIN</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EWOULDBLOCK</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">driver</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                <span class="k">raise</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">driver</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Remote end closed the connection&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">driver</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

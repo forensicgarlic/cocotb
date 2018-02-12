@@ -1,0 +1,286 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cocotb.scoreboard &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for cocotb.scoreboard</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="sd">&#39;&#39;&#39; Copyright (c) 2013 Potential Ventures Ltd</span>
+<span class="sd">Copyright (c) 2013 SolarFlare Communications Inc</span>
+<span class="sd">All rights reserved.</span>
+
+<span class="sd">Redistribution and use in source and binary forms, with or without</span>
+<span class="sd">modification, are permitted provided that the following conditions are met:</span>
+<span class="sd">    * Redistributions of source code must retain the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer.</span>
+<span class="sd">    * Redistributions in binary form must reproduce the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer in the</span>
+<span class="sd">      documentation and/or other materials provided with the distribution.</span>
+<span class="sd">    * Neither the name of Potential Ventures Ltd,</span>
+<span class="sd">      SolarFlare Communications Inc nor the</span>
+<span class="sd">      names of its contributors may be used to endorse or promote products</span>
+<span class="sd">      derived from this software without specific prior written permission.</span>
+
+<span class="sd">THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="sd">ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="sd">WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="sd">DISCLAIMED. IN NO EVENT SHALL POTENTIAL VENTURES LTD BE LIABLE FOR ANY</span>
+<span class="sd">DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="sd">(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="sd">LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="sd">ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="sd">(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="sd">SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. &#39;&#39;&#39;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Common scoreboarding capability.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">cocotb</span>
+
+<span class="kn">from</span> <span class="nn">cocotb.utils</span> <span class="k">import</span> <span class="n">hexdump</span><span class="p">,</span> <span class="n">hexdiffs</span>
+<span class="kn">from</span> <span class="nn">cocotb.log</span> <span class="k">import</span> <span class="n">SimLog</span>
+<span class="kn">from</span> <span class="nn">cocotb.monitors</span> <span class="k">import</span> <span class="n">Monitor</span>
+<span class="kn">from</span> <span class="nn">cocotb.result</span> <span class="k">import</span> <span class="n">TestFailure</span><span class="p">,</span> <span class="n">TestSuccess</span>
+
+
+<div class="viewcode-block" id="Scoreboard"><a class="viewcode-back" href="../../library_reference.html#cocotb.scoreboard.Scoreboard">[docs]</a><span class="k">class</span> <span class="nc">Scoreboard</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generic scoreboarding class</span>
+
+<span class="sd">    We can add interfaces by providing a monitor and an expected output queue</span>
+
+<span class="sd">    The expected output can either be a function which provides a transaction</span>
+<span class="sd">    or a simple list containing the expected output.</span>
+
+<span class="sd">    TODO:</span>
+<span class="sd">        Statistics for end-of-test summary etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dut</span><span class="p">,</span> <span class="n">reorder_depth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">fail_immediately</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="n">dut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SimLog</span><span class="p">(</span><span class="s2">&quot;cocotb.scoreboard.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dut</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expected</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_imm</span> <span class="o">=</span> <span class="n">fail_immediately</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Determine the test result, do we have any pending data remaining?&quot;&quot;&quot;</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">monitor</span><span class="p">,</span> <span class="n">expected_output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">expected</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">expected_output</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Can&#39;t check all data returned for </span><span class="si">%s</span><span class="s2"> since &quot;</span>
+                               <span class="s2">&quot;expected output is callable function rather &quot;</span>
+                               <span class="s2">&quot;than a list&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">monitor</span><span class="p">))</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected_output</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Still expecting </span><span class="si">%d</span><span class="s2"> transactions on </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                              <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">expected_output</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">monitor</span><span class="p">)))</span>
+                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">transaction</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">expected_output</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Expecting </span><span class="si">%d</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                                  <span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">hexdump</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">transaction</span><span class="p">))))</span>
+                    <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... and </span><span class="si">%d</span><span class="s2"> more to come&quot;</span> <span class="o">%</span>
+                                      <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">expected_output</span><span class="p">)</span> <span class="o">-</span> <span class="n">index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="k">break</span>
+                <span class="n">fail</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">fail</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;Not all expected output was received&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;Errors were recorded during the test&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TestSuccess</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Scoreboard.compare"><a class="viewcode-back" href="../../library_reference.html#cocotb.scoreboard.Scoreboard.compare">[docs]</a>    <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">got</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">strict_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Common function for comparing two transactions.</span>
+
+<span class="sd">        Can be re-implemented by a subclass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Compare the types</span>
+        <span class="k">if</span> <span class="n">strict_type</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">got</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">type</span><span class="p">(</span><span class="n">exp</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Received transaction is a different type to expected &quot;</span>
+                      <span class="s2">&quot;transaction&quot;</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got: </span><span class="si">%s</span><span class="s2"> but expected </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                     <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">got</span><span class="p">)),</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">exp</span><span class="p">))))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_imm</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;Received transaction of wrong type&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="c1"># Or convert to a string before comparison</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict_type</span><span class="p">:</span>
+            <span class="n">got</span><span class="p">,</span> <span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">got</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span>
+
+        <span class="c1"># Compare directly</span>
+        <span class="k">if</span> <span class="n">got</span> <span class="o">!=</span> <span class="n">exp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Try our best to print out something useful</span>
+            <span class="n">strgot</span><span class="p">,</span> <span class="n">strexp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">got</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span>
+
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Received transaction differed from expected output&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">strict_type</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Expected:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">hexdump</span><span class="p">(</span><span class="n">strexp</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Expected:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">exp</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">exp</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">word</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">strict_type</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Received:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">hexdump</span><span class="p">(</span><span class="n">strgot</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Received:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">got</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">got</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">got</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">word</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Difference:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">hexdiffs</span><span class="p">(</span><span class="n">strexp</span><span class="p">,</span> <span class="n">strgot</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_imm</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;Received transaction differed from expected&quot;</span>
+                                  <span class="s2">&quot;transaction&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t want to fail the test</span>
+            <span class="c1"># if we&#39;re passed something without __len__</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Received expected transaction </span><span class="si">%d</span><span class="s2"> bytes&quot;</span> <span class="o">%</span>
+                          <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">got</span><span class="p">)))</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">got</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span></div>
+                <span class="k">pass</span>
+
+<div class="viewcode-block" id="Scoreboard.add_interface"><a class="viewcode-back" href="../../library_reference.html#cocotb.scoreboard.Scoreboard.add_interface">[docs]</a>    <span class="k">def</span> <span class="nf">add_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">monitor</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">,</span> <span class="n">compare_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">reorder_depth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">strict_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add an interface to be scoreboarded.</span>
+
+<span class="sd">            Provides a function which the monitor will callback with received</span>
+<span class="sd">            transactions</span>
+
+<span class="sd">            Simply check against the expected output.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># save a handle to the expected output so we can check if all expected</span>
+        <span class="c1"># data has been received at the end of a test.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expected</span><span class="p">[</span><span class="n">monitor</span><span class="p">]</span> <span class="o">=</span> <span class="n">expected_output</span>
+
+        <span class="c1"># Enforce some type checking as we only work with a real monitor</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">monitor</span><span class="p">,</span> <span class="n">Monitor</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected monitor on the interface but got </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                            <span class="p">(</span><span class="n">monitor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">compare_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">compare_fn</span><span class="p">):</span>
+                <span class="n">monitor</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="n">compare_fn</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected a callable compare function but got </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                            <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">compare_fn</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created with reorder_depth </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">reorder_depth</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">check_received_transaction</span><span class="p">(</span><span class="n">transaction</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Called back by the monitor when a new transaction has been</span>
+<span class="sd">            received&quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="n">monitor</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="n">log_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">monitor</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">monitor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+
+            <span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">log_name</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">expected_output</span><span class="p">):</span>
+                <span class="n">exp</span> <span class="o">=</span> <span class="n">expected_output</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected_output</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">min</span><span class="p">((</span><span class="n">reorder_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected_output</span><span class="p">))):</span>
+                    <span class="k">if</span> <span class="n">expected_output</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">transaction</span><span class="p">:</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">exp</span> <span class="o">=</span> <span class="n">expected_output</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Received a transaction but wasn&#39;t expecting &quot;</span>
+                          <span class="s2">&quot;anything&quot;</span><span class="p">)</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hexdump</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">transaction</span><span class="p">))))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_imm</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;Received a transaction but wasn&#39;t &quot;</span>
+                                      <span class="s2">&quot;expecting anything&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">transaction</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">strict_type</span><span class="o">=</span><span class="n">strict_type</span><span class="p">)</span>
+</div></div>
+        <span class="n">monitor</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="n">check_received_transaction</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

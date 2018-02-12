@@ -1,8 +1,0 @@
-title: Cocotb
-description: "Coroutine Co-simulation Test Bench "
-google_analytics: UA-41678571-1
-show_downloads: true
-theme: jekyll-theme-minimal
-
-gems:
-  - jekyll-mentions

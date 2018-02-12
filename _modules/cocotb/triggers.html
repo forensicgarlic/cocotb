@@ -1,0 +1,617 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cocotb.triggers &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for cocotb.triggers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39; Copyright (c) 2013 Potential Ventures Ltd</span>
+<span class="sd">Copyright (c) 2013 SolarFlare Communications Inc</span>
+<span class="sd">All rights reserved.</span>
+
+<span class="sd">Redistribution and use in source and binary forms, with or without</span>
+<span class="sd">modification, are permitted provided that the following conditions are met:</span>
+<span class="sd">    * Redistributions of source code must retain the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer.</span>
+<span class="sd">    * Redistributions in binary form must reproduce the above copyright</span>
+<span class="sd">      notice, this list of conditions and the following disclaimer in the</span>
+<span class="sd">      documentation and/or other materials provided with the distribution.</span>
+<span class="sd">    * Neither the name of Potential Ventures Ltd,</span>
+<span class="sd">      SolarFlare Communications Inc nor the</span>
+<span class="sd">      names of its contributors may be used to endorse or promote products</span>
+<span class="sd">      derived from this software without specific prior written permission.</span>
+
+<span class="sd">THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="sd">ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="sd">WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="sd">DISCLAIMED. IN NO EVENT SHALL POTENTIAL VENTURES LTD BE LIABLE FOR ANY</span>
+<span class="sd">DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="sd">(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="sd">LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="sd">ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="sd">(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="sd">SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. &#39;&#39;&#39;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A collections of triggers which a testbench can &#39;yield&#39;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="c1"># For autodocumentation don&#39;t need the extension modules</span>
+<span class="k">if</span> <span class="s2">&quot;SPHINX_BUILD&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+    <span class="n">simulator</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">simulator</span>
+<span class="kn">from</span> <span class="nn">cocotb.log</span> <span class="k">import</span> <span class="n">SimLog</span>
+<span class="kn">from</span> <span class="nn">cocotb.result</span> <span class="k">import</span> <span class="n">raise_error</span>
+<span class="kn">from</span> <span class="nn">cocotb.utils</span> <span class="k">import</span> <span class="n">get_sim_steps</span><span class="p">,</span> <span class="n">get_time_from_sim_steps</span>
+
+
+<span class="k">class</span> <span class="nc">TriggerException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">Trigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class to derive from&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">SimLog</span><span class="p">(</span><span class="s2">&quot;cocotb.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">),</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primed</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primed</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">unprime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove any pending callbacks if necessary&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primed</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ensure if a trigger drops out of scope we remove any pending</span>
+<span class="sd">        callbacks&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unprime</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+
+
+<span class="k">class</span> <span class="nc">PythonTrigger</span><span class="p">(</span><span class="n">Trigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Python triggers don&#39;t use GPI at all</span>
+
+<span class="sd">        For example notification of coroutine completion etc</span>
+
+<span class="sd">        TODO:</span>
+<span class="sd">            Still need to implement unprime</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">GPITrigger</span><span class="p">(</span><span class="n">Trigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base Trigger class for GPI triggers</span>
+
+<span class="sd">    Consumes simulation time</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Required to ensure documentation can build</span>
+        <span class="c1"># if simulator is not None:</span>
+        <span class="c1">#    self.cbhdl = simulator.create_callback(self)</span>
+        <span class="c1"># else:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">unprime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Disable a primed trigger, can be reprimed&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span><span class="p">:</span>
+            <span class="n">simulator</span><span class="o">.</span><span class="n">deregister_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">unprime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove knowledge of the trigger&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unprime</span><span class="p">()</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Timer"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Timer">[docs]</a><span class="k">class</span> <span class="nc">Timer</span><span class="p">(</span><span class="n">GPITrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when the specified time period expires</span>
+
+<span class="sd">    Consumes simulation time</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_ps</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">GPITrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_steps</span> <span class="o">=</span> <span class="n">get_sim_steps</span><span class="p">(</span><span class="n">time_ps</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register for a timed callback&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_timed_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_steps</span><span class="p">,</span>
+                                                           <span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%1.2f</span><span class="s2">ps)&quot;</span> <span class="o">%</span> <span class="n">get_time_from_sim_steps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_steps</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s1">&#39;ps&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">_ReadOnly</span><span class="p">(</span><span class="n">GPITrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when the readonly portion of the sim cycles is</span>
+<span class="sd">    readched</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">GPITrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_readonly_callback</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(readonly)&quot;</span>
+
+<span class="n">_ro</span> <span class="o">=</span> <span class="n">_ReadOnly</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="ReadOnly"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.ReadOnly">[docs]</a><span class="k">def</span> <span class="nf">ReadOnly</span><span class="p">():</span></div>
+    <span class="k">return</span> <span class="n">_ro</span>
+
+
+<span class="k">class</span> <span class="nc">_ReadWrite</span><span class="p">(</span><span class="n">GPITrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when the readwrite porttion of the sim cycles is</span>
+<span class="sd">    reached</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">GPITrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># import pdb</span>
+            <span class="c1"># pdb.set_trace()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_rwsynch_callback</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(readwritesync)&quot;</span>
+
+<span class="n">_rw</span> <span class="o">=</span> <span class="n">_ReadWrite</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">ReadWrite</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">_rw</span>
+
+
+<span class="k">class</span> <span class="nc">_NextTimeStep</span><span class="p">(</span><span class="n">GPITrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when the next time step is started</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">GPITrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_nextstep_callback</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(nexttimestep)&quot;</span>
+
+<span class="n">_nxts</span> <span class="o">=</span> <span class="n">_NextTimeStep</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">NextTimeStep</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">_nxts</span>
+
+
+<span class="k">class</span> <span class="nc">_Edge</span><span class="p">(</span><span class="n">GPITrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when an edge occurs on the provided signal</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="n">GPITrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="n">signal</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register notification of a value change via a callback&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_value_change_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span>
+                                                                  <span class="n">_handle</span><span class="p">,</span>
+                                                                  <span class="n">callback</span><span class="p">,</span>
+                                                                  <span class="mi">3</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">_name</span>
+
+<div class="viewcode-block" id="Edge"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Edge">[docs]</a><span class="k">def</span> <span class="nf">Edge</span><span class="p">(</span><span class="n">signal</span><span class="p">):</span></div>
+    <span class="k">return</span> <span class="n">signal</span><span class="o">.</span><span class="n">_e_edge</span>
+
+
+<span class="k">class</span> <span class="nc">_RisingOrFallingEdge</span><span class="p">(</span><span class="n">_Edge</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">rising</span><span class="p">):</span>
+        <span class="n">_Edge</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rising</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_value_change_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span>
+                                                                  <span class="n">_handle</span><span class="p">,</span>
+                                                                  <span class="n">callback</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">_name</span>
+
+
+<span class="k">class</span> <span class="nc">_RisingEdge</span><span class="p">(</span><span class="n">_RisingOrFallingEdge</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when a rising edge occurs on the provided signal</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="n">_RisingOrFallingEdge</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">rising</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RisingEdge"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.RisingEdge">[docs]</a><span class="k">def</span> <span class="nf">RisingEdge</span><span class="p">(</span><span class="n">signal</span><span class="p">):</span></div>
+    <span class="k">return</span> <span class="n">signal</span><span class="o">.</span><span class="n">_r_edge</span>
+
+
+<span class="k">class</span> <span class="nc">_FallingEdge</span><span class="p">(</span><span class="n">_RisingOrFallingEdge</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume when a falling edge occurs on the provided signal</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="n">_RisingOrFallingEdge</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">rising</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">FallingEdge</span><span class="p">(</span><span class="n">signal</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">signal</span><span class="o">.</span><span class="n">_f_edge</span>
+
+
+<span class="k">class</span> <span class="nc">ClockCycles</span><span class="p">(</span><span class="n">_Edge</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execution will resume after N rising edges or N falling edges</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">num_cycles</span><span class="p">,</span> <span class="n">rising</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">_Edge</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_cycles</span> <span class="o">=</span> <span class="n">num_cycles</span>
+        <span class="k">if</span> <span class="n">rising</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+
+        <span class="k">def</span> <span class="nf">_check</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unprime</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_cycles</span> <span class="o">-=</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cycles</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                    <span class="k">return</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_value_change_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span>
+                                                                  <span class="n">_handle</span><span class="p">,</span>
+                                                                  <span class="n">_check</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">register_value_change_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span>
+                                                              <span class="n">_handle</span><span class="p">,</span>
+                                                              <span class="n">_check</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">_rising</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhdl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Unable set up </span><span class="si">%s</span><span class="s2"> Trigger&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">_name</span>
+
+
+<span class="k">class</span> <span class="nc">Combine</span><span class="p">(</span><span class="n">PythonTrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combines multiple triggers together.  Coroutine will continue when all</span>
+<span class="sd">    triggers have fired</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">PythonTrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_triggers</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="c1"># TODO: check that trigger is an iterable containing</span>
+        <span class="c1"># only Trigger objects</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">trigger</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trigger</span><span class="p">,</span> <span class="n">Trigger</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">TriggerException</span><span class="p">(</span><span class="s2">&quot;All combined triggers must be &quot;</span>
+                                           <span class="s2">&quot;instances of Trigger! Got: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                                           <span class="n">trigger</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TriggerException</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> requires a list of Trigger objects&quot;</span> <span class="o">%</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fired</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">trigger</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers</span><span class="p">:</span>
+            <span class="n">trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_check_all_fired</span><span class="p">)</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_check_all_fired</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trigger</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fired</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fired</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unprime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">trigger</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers</span><span class="p">:</span>
+            <span class="n">trigger</span><span class="o">.</span><span class="n">unprime</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">_Event</span><span class="p">(</span><span class="n">PythonTrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unique instance used by the Event object.</span>
+
+<span class="sd">    One created for each attempt to wait on the event so that the scheduler</span>
+<span class="sd">    can maintain a dictionary of indexing each individual coroutine</span>
+
+<span class="sd">    FIXME: This will leak - need to use peers to ensure everything is removed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="n">PythonTrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Event"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Event">[docs]</a><span class="k">class</span> <span class="nc">Event</span><span class="p">(</span><span class="n">PythonTrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Event to permit synchronisation between two coroutines</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="n">PythonTrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fired</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">trigger</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Event.set"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Event.set">[docs]</a>    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Wake up any coroutines blocked on this event&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fired</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="p">[:]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">trigger</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span></div>
+            <span class="n">trigger</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Event.wait"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Event.wait">[docs]</a>    <span class="k">def</span> <span class="nf">wait</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This can be yielded to block this coroutine</span>
+<span class="sd">        until another wakes it&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="n">_Event</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Event.clear"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Event.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clear this event that&#39;s fired.</span>
+
+<span class="sd">        Subsequent calls to wait will block until set() is called again&quot;&quot;&quot;</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fired</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+
+<span class="k">class</span> <span class="nc">_Lock</span><span class="p">(</span><span class="n">PythonTrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unique instance used by the Lock object.</span>
+
+<span class="sd">    One created for each attempt to acquire the Lock so that the scheduler</span>
+<span class="sd">    can maintain a dictionary of indexing each individual coroutine</span>
+
+<span class="sd">    FIXME: This will leak - need to use peers to ensure everything is removed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="n">PythonTrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Lock"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Lock">[docs]</a><span class="k">class</span> <span class="nc">Lock</span><span class="p">(</span><span class="n">PythonTrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lock primitive (not re-entrant)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="n">PythonTrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_unprimed</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_primed</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locked</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">trigger</span><span class="p">):</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="n">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_unprimed</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">locked</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">locked</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">callback</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pending_primed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Lock.acquire"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Lock.acquire">[docs]</a>    <span class="k">def</span> <span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This can be yielded to block until the lock is acquired&quot;&quot;&quot;</span>
+        <span class="n">trig</span> <span class="o">=</span> <span class="n">_Lock</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_unprimed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trig</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">trig</span>
+
+    <span class="k">def</span> <span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">locked</span><span class="p">:</span>
+            <span class="n">raise_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Attempt to release an unacquired Lock </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                        <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">locked</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># nobody waiting for this lock</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending_primed</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending_primed</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locked</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">trigger</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">) [</span><span class="si">%s</span><span class="s2"> waiting]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">),</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                        <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pending_primed</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provide boolean of a Lock&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">locked</span>
+
+
+<span class="k">class</span> <span class="nc">NullTrigger</span><span class="p">(</span><span class="n">Trigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trigger for internal interfacing use call the callback as soon</span>
+<span class="sd">    as it is primed and then remove it&#39;s self from the scheduler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="n">Trigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">prime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="n">callback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Join</span><span class="p">(</span><span class="n">PythonTrigger</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Join a coroutine, firing when it exits</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coroutine</span><span class="p">):</span>
+        <span class="n">PythonTrigger</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coroutine</span> <span class="o">=</span> <span class="n">coroutine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pass_retval</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">retval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coroutine</span><span class="o">.</span><span class="n">retval</span>
+
+    <span class="c1"># def prime(self, callback):</span>
+        <span class="c1"># &quot;&quot;&quot;Register our calback for when the coroutine exits&quot;&quot;&quot;</span>
+        <span class="c1"># Trigger.prime(self)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coroutine</span><span class="o">.</span><span class="vm">__name__</span>
+
+
+<div class="viewcode-block" id="Join"><a class="viewcode-back" href="../../library_reference.html#cocotb.triggers.Join">[docs]</a><span class="k">def</span> <span class="nf">Join</span><span class="p">(</span><span class="n">coro</span><span class="p">):</span></div>
+    <span class="k">return</span> <span class="n">coro</span><span class="o">.</span><span class="n">_join</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">cocotb 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

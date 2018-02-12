@@ -1,0 +1,279 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tutorial: Driver Cosimulation &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Roadmap" href="roadmap.html" />
+    <link rel="prev" title="Tutorial: Ping" href="ping_tun_tap.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="roadmap.html" title="Roadmap"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ping_tun_tap.html" title="Tutorial: Ping"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tutorial-driver-cosimulation">
+<h1>Tutorial: Driver Cosimulation<a class="headerlink" href="#tutorial-driver-cosimulation" title="Permalink to this headline">¶</a></h1>
+<p>Cocotb was designed to provide a common platform for hardware and software
+developers to interact.  By integrating systems early, ideally at the
+block level, it’s possible to find bugs earlier in the design process.</p>
+<p>For any given component that has a software interface there is typically a
+software abstraction layer or driver which communicates with the hardware. In
+this tutorial we will call unmodified production software from our testbench
+and re-use the code written to configure the entity.</p>
+<p>For the impatient this tutorial is provided as an example with Cocotb. You can
+run this example from a fresh checkout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">examples</span><span class="o">/</span><span class="n">endian_swapper</span><span class="o">/</span><span class="n">tests</span>
+<span class="n">make</span> <span class="n">MODULE</span><span class="o">=</span><span class="n">test_endian_swapper_hal</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><a class="reference external" href="http://www.swig.org/">SWIG</a> is required to compile the example</p>
+</div>
+<div class="section" id="difficulties-with-driver-co-simulation">
+<h2>Difficulties with Driver Co-simulation<a class="headerlink" href="#difficulties-with-driver-co-simulation" title="Permalink to this headline">¶</a></h2>
+<p>Co-simulating <em>un-modified</em> production software against a block-level
+testbench is not trivial - there are a couple of significant obstacles to
+overcome:</p>
+<div class="section" id="calling-the-hal-from-a-test">
+<h3>Calling the HAL from a test<a class="headerlink" href="#calling-the-hal-from-a-test" title="Permalink to this headline">¶</a></h3>
+<p>Typically the software component (often referred to as a Hardware Abstraction
+Layer or HAL) is written in C.  We need to call this software from our test
+written in Python.  There are multiple ways to call C code from Python, in
+this tutorial we’ll use <a class="reference external" href="http://www.swig.org/">SWIG</a> to generate Python bindings for our HAL.</p>
+</div>
+<div class="section" id="blocking-in-the-driver">
+<h3>Blocking in the driver<a class="headerlink" href="#blocking-in-the-driver" title="Permalink to this headline">¶</a></h3>
+<p>Another difficulty to overcome is the fact that the HAL is expecting to call
+a low-level function to access the hardware, often something like <code class="docutils literal notranslate"><span class="pre">ioread32</span></code>.
+We need this call to block while simulation time advances and a value is
+either read or written on the bus.  To achieve this we link the HAL against
+a C library that provides the low level read/write functions.  These functions
+in turn call into Cocotb and perform the relevant access on the DUT.</p>
+</div>
+</div>
+<div class="section" id="cocotb-infrastructure">
+<h2>Cocotb infrastructure<a class="headerlink" href="#cocotb-infrastructure" title="Permalink to this headline">¶</a></h2>
+<p>There are two decorators provided to enable this flow, which are typically used
+together to achieve the required functionality.  The <code class="docutils literal notranslate"><span class="pre">cocotb.external</span></code>
+decorator turns a normal function that isn’t a coroutine into a blocking
+coroutine (by running the function in a separate thread).  The
+<code class="docutils literal notranslate"><span class="pre">cocotb.function</span></code> decorator allows a coroutine that consumes simulation time
+to be called by a normal thread.  The call sequence looks like this:</p>
+<img alt="_images/hal_cosimulation.svg" src="_images/hal_cosimulation.svg" /></div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="register-map">
+<h3>Register Map<a class="headerlink" href="#register-map" title="Permalink to this headline">¶</a></h3>
+<p>The endian swapper has a very simple register map:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="12%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Byte Offset</th>
+<th class="head">Register</th>
+<th class="head">Bits</th>
+<th class="head">Access</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td rowspan="2">0</td>
+<td rowspan="2">CONTROL</td>
+<td>0</td>
+<td>R/W</td>
+<td>Enable</td>
+</tr>
+<tr class="row-odd"><td>31:1</td>
+<td>N/A</td>
+<td>Reserved</td>
+</tr>
+<tr class="row-even"><td>4</td>
+<td>PACKET_COUNT</td>
+<td>31:0</td>
+<td>RO</td>
+<td>Num Packets</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="hal">
+<h3>HAL<a class="headerlink" href="#hal" title="Permalink to this headline">¶</a></h3>
+<p>To keep things simple we use the same RTL from the <a class="reference internal" href="endian_swapper.html"><span class="doc">Tutorial: Endian Swapper</span></a>. We
+write a simplistic HAL which provides the following functions:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">endian_swapper_enable</span><span class="p">(</span><span class="n">endian_swapper_state_t</span> <span class="o">*</span><span class="n">state</span><span class="p">);</span>
+<span class="n">endian_swapper_disable</span><span class="p">(</span><span class="n">endian_swapper_state_t</span> <span class="o">*</span><span class="n">state</span><span class="p">);</span>
+<span class="n">endian_swapper_get_count</span><span class="p">(</span><span class="n">endian_swapper_state_t</span> <span class="o">*</span><span class="n">state</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>These functions call <code class="docutils literal notranslate"><span class="pre">IORD</span></code> and <code class="docutils literal notranslate"><span class="pre">IOWR</span></code> - usually provided by the Altera
+NIOS framework.</p>
+</div>
+<div class="section" id="io-module">
+<h3>IO Module<a class="headerlink" href="#io-module" title="Permalink to this headline">¶</a></h3>
+<p>This module acts as the bridge between the C HAL and the Python testbench.  It
+exposes the <code class="docutils literal notranslate"><span class="pre">IORD</span></code> and <code class="docutils literal notranslate"><span class="pre">IOWR</span></code> calls to link the HAL against, but also
+provides a Python interface to allow the read/write bindings to be dynamically
+set (through <code class="docutils literal notranslate"><span class="pre">set_write_function</span></code> and <code class="docutils literal notranslate"><span class="pre">set_read_function</span></code> module functions).</p>
+<p>In a more complicated scenario, this could act as an interconnect, dispatching
+the access to the appropriate driver depending on address decoding, for
+instance.</p>
+</div>
+<div class="section" id="testbench">
+<h3>Testbench<a class="headerlink" href="#testbench" title="Permalink to this headline">¶</a></h3>
+<p>First of all we set up a clock, create an Avalon Master interface and reset
+the DUT.  Then we create two functions that are wrapped with the
+<code class="docutils literal notranslate"><span class="pre">cocotb.function</span></code> decorator to be called when the HAL attempts to perform
+a read or write.  These are then passed to the <a class="reference internal" href="#io-module">IO Module</a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cocotb.function</span>
+<span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="n">address</span><span class="p">):</span>
+    <span class="n">master</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;External source: reading address 0x</span><span class="si">%08X</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">address</span><span class="p">)</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">master</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+    <span class="n">master</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reading complete: got value 0x</span><span class="si">%08x</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="n">ReturnValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+<span class="nd">@cocotb.function</span>
+<span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="n">master</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Write called for 0x</span><span class="si">%08X</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+    <span class="k">yield</span> <span class="n">master</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">master</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Write complete&quot;</span><span class="p">)</span>
+
+<span class="n">io_module</span><span class="o">.</span><span class="n">set_write_function</span><span class="p">(</span><span class="n">write</span><span class="p">)</span>
+<span class="n">io_module</span><span class="o">.</span><span class="n">set_read_function</span><span class="p">(</span><span class="n">read</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We can then intialise the HAL and call functions, using the <code class="docutils literal notranslate"><span class="pre">cocotb.external</span></code>
+decorator to turn the normal function into a blocking coroutine that we can
+<code class="docutils literal notranslate"><span class="pre">yield</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">hal</span><span class="o">.</span><span class="n">endian_swapper_init</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="k">yield</span> <span class="n">cocotb</span><span class="o">.</span><span class="n">external</span><span class="p">(</span><span class="n">hal</span><span class="o">.</span><span class="n">endian_swapper_enable</span><span class="p">)(</span><span class="n">state</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The HAL will perform whatever calls it needs, accessing the DUT through the
+Avalon-MM driver, and control will return to the testbench when the function
+returns.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The decorator is applied to the function before it is called</p>
+</div>
+</div>
+</div>
+<div class="section" id="further-work">
+<h2>Further Work<a class="headerlink" href="#further-work" title="Permalink to this headline">¶</a></h2>
+<p>In future tutorials we’ll consider co-simulating unmodified drivers written
+using <code class="docutils literal notranslate"><span class="pre">mmap</span></code> (for example built upon the <a class="reference external" href="https://www.kernel.org/doc/htmldocs/uio-howto/about.html">UIO framework</a>) and consider
+interfacing with emulators like <a class="reference external" href="http://wiki.qemu.org/Main_Page">QEMU</a> to allow us to co-simulate when the
+software needs to execute on a different processor architecture.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tutorial: Driver Cosimulation</a><ul>
+<li><a class="reference internal" href="#difficulties-with-driver-co-simulation">Difficulties with Driver Co-simulation</a><ul>
+<li><a class="reference internal" href="#calling-the-hal-from-a-test">Calling the HAL from a test</a></li>
+<li><a class="reference internal" href="#blocking-in-the-driver">Blocking in the driver</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cocotb-infrastructure">Cocotb infrastructure</a></li>
+<li><a class="reference internal" href="#implementation">Implementation</a><ul>
+<li><a class="reference internal" href="#register-map">Register Map</a></li>
+<li><a class="reference internal" href="#hal">HAL</a></li>
+<li><a class="reference internal" href="#io-module">IO Module</a></li>
+<li><a class="reference internal" href="#testbench">Testbench</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#further-work">Further Work</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ping_tun_tap.html"
+                        title="previous chapter">Tutorial: Ping</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="roadmap.html"
+                        title="next chapter">Roadmap</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/hal_cosimulation.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="roadmap.html" title="Roadmap"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ping_tun_tap.html" title="Tutorial: Ping"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

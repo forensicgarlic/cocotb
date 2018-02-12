@@ -1,0 +1,229 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Build options and Environment Variables &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Coroutines" href="coroutines.html" />
+    <link rel="prev" title="Quickstart Guide" href="quickstart.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="coroutines.html" title="Coroutines"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="quickstart.html" title="Quickstart Guide"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="build-options-and-environment-variables">
+<h1>Build options and Environment Variables<a class="headerlink" href="#build-options-and-environment-variables" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="make-system">
+<h2>Make System<a class="headerlink" href="#make-system" title="Permalink to this headline">¶</a></h2>
+<p>Makefiles are provided for a variety of simulators in cocotb/makefiles/simulators.  The common Makefile cocotb/makefiles/Makefile.sim includes the appropriate simulator makefile based on the contents of the SIM variable.</p>
+<div class="section" id="make-targets">
+<h3>Make Targets<a class="headerlink" href="#make-targets" title="Permalink to this headline">¶</a></h3>
+<p>Makefiles define two targets, ‘regression’ and ‘sim’, the default target is sim.</p>
+<p>Both rules create a results file in the calling directory called ‘results.xml’.  This file is a JUnit-compatible output file suitable for use with <a class="reference external" href="http://jenkins-ci.org/">Jenkins</a>. The ‘sim’ targets unconditionally re-runs the simulator whereas the regression target only re-builds if any dependencies have changed.</p>
+</div>
+<div class="section" id="make-phases">
+<h3>Make phases<a class="headerlink" href="#make-phases" title="Permalink to this headline">¶</a></h3>
+<p>Typically the makefiles provided with Cocotb for various simulators use a separate <em>compile</em> and <em>run</em> target.  This allows for a rapid re-running of a simulator if none of the RTL source files have changed and therefore the simulator does not need to recompile the RTL.</p>
+</div>
+<div class="section" id="make-variables">
+<h3>Make Variables<a class="headerlink" href="#make-variables" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="gui">
+<h4>GUI<a class="headerlink" href="#gui" title="Permalink to this headline">¶</a></h4>
+<p>Set this to 1 to enable the GUI mode in the simulator (if supported).</p>
+</div>
+<div class="section" id="sim">
+<h4>SIM<a class="headerlink" href="#sim" title="Permalink to this headline">¶</a></h4>
+<p>Selects which simulator Makefile to use.  Attempts to include a simulator specific makefile from cocotb/makefiles/makefile.$(SIM)</p>
+</div>
+<div class="section" id="verilog-sources">
+<h4>VERILOG_SOURCES<a class="headerlink" href="#verilog-sources" title="Permalink to this headline">¶</a></h4>
+<p>A list of the Verilog source files to include.</p>
+</div>
+<div class="section" id="vhdl-sources">
+<h4>VHDL_SOURCES<a class="headerlink" href="#vhdl-sources" title="Permalink to this headline">¶</a></h4>
+<p>A list of the VHDL source files to include.</p>
+</div>
+<div class="section" id="compile-args">
+<h4>COMPILE_ARGS<a class="headerlink" href="#compile-args" title="Permalink to this headline">¶</a></h4>
+<p>Any arguments or flags to pass to the compile stage of the simulation. Only applies to simulators with a separate compilation stage (currently Icarus and VCS).</p>
+</div>
+<div class="section" id="sim-args">
+<h4>SIM_ARGS<a class="headerlink" href="#sim-args" title="Permalink to this headline">¶</a></h4>
+<p>Any arguments or flags to pass to the execution of the compiled simulation.  Only applies to simulators with a separate compilation stage (currently Icarus, VCS and GHDL).</p>
+</div>
+<div class="section" id="extra-args">
+<h4>EXTRA_ARGS<a class="headerlink" href="#extra-args" title="Permalink to this headline">¶</a></h4>
+<p>Passed to both the compile and execute phases of simulators with two rules, or passed to the single compile and run command for simulators which don’t have a distinct compilation stage.</p>
+</div>
+<div class="section" id="custom-compile-deps">
+<h4>CUSTOM_COMPILE_DEPS<a class="headerlink" href="#custom-compile-deps" title="Permalink to this headline">¶</a></h4>
+<p>Use to add additional dependencies to the compilation target; useful for defining additional rules to run pre-compilation or if the compilation phase depends on files other than the RTL sources listed in <strong>VERILOG_SOURCES</strong> or <strong>VHDL_SOURCES</strong>.</p>
+</div>
+<div class="section" id="custom-sim-deps">
+<h4>CUSTOM_SIM_DEPS<a class="headerlink" href="#custom-sim-deps" title="Permalink to this headline">¶</a></h4>
+<p>Use to add additional dependencies to the simulation target.</p>
+</div>
+<div class="section" id="cocotb-nvc-trace">
+<h4>COCOTB_NVC_TRACE<a class="headerlink" href="#cocotb-nvc-trace" title="Permalink to this headline">¶</a></h4>
+<p>Set this to 1 to enable display VHPI trace when using nvc VHDL simulator.</p>
+</div>
+<div class="section" id="sim-build">
+<h4>SIM_BUILD<a class="headerlink" href="#sim-build" title="Permalink to this headline">¶</a></h4>
+<p>Use to define a scratch directory for use by the simulator. The path is relative to the Makefile location. If not provided, the default scratch directory is “sim_build”.</p>
+</div>
+</div>
+</div>
+<div class="section" id="environment-variables">
+<h2>Environment Variables<a class="headerlink" href="#environment-variables" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="toplevel">
+<h3>TOPLEVEL<a class="headerlink" href="#toplevel" title="Permalink to this headline">¶</a></h3>
+<p>Used to indicate the instance in the hierarchy to use as the DUT.  If this isn’t defined then the first root instance is used.</p>
+</div>
+<div class="section" id="random-seed">
+<h3>RANDOM_SEED<a class="headerlink" href="#random-seed" title="Permalink to this headline">¶</a></h3>
+<p>Seed the Python random module to recreate a previous test stimulus.  At the beginning of every test a message is displayed with the seed used for that execution:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>INFO     cocotb.gpi                                  __init__.py:89   in _initialise_testbench           Seeding Python random module with <span class="m">1377424946</span>
+</pre></div>
+</div>
+<p>To recreate the same stimulis use the following:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make <span class="nv">RANDOM_SEED</span><span class="o">=</span><span class="m">1377424946</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="cocotb-ansi-output">
+<h3>COCOTB_ANSI_OUTPUT<a class="headerlink" href="#cocotb-ansi-output" title="Permalink to this headline">¶</a></h3>
+<p>Use this to override the default behaviour of annotating cocotb output with
+ANSI colour codes if the output is a terminal (isatty()).</p>
+<p>COCOTB_ANSI_OUTPUT=1 forces output to be ANSI regardless of the type stdout</p>
+<p>COCOTB_ANSI_OUTPUT=0 supresses the ANSI output in the log messages</p>
+</div>
+<div class="section" id="module">
+<h3>MODULE<a class="headerlink" href="#module" title="Permalink to this headline">¶</a></h3>
+<p>The name of the module(s) to search for test functions.  Multiple modules can be specified using a comma-separated list.</p>
+</div>
+<div class="section" id="testcase">
+<h3>TESTCASE<a class="headerlink" href="#testcase" title="Permalink to this headline">¶</a></h3>
+<p>The name of the test function(s) to run.  If this variable is not defined cocotb discovers and executes all functions decorated with &#64;cocotb.test() decorator in the supplied modules.</p>
+<p>Multiple functions can be specified in a comma-separated list.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Build options and Environment Variables</a><ul>
+<li><a class="reference internal" href="#make-system">Make System</a><ul>
+<li><a class="reference internal" href="#make-targets">Make Targets</a></li>
+<li><a class="reference internal" href="#make-phases">Make phases</a></li>
+<li><a class="reference internal" href="#make-variables">Make Variables</a><ul>
+<li><a class="reference internal" href="#gui">GUI</a></li>
+<li><a class="reference internal" href="#sim">SIM</a></li>
+<li><a class="reference internal" href="#verilog-sources">VERILOG_SOURCES</a></li>
+<li><a class="reference internal" href="#vhdl-sources">VHDL_SOURCES</a></li>
+<li><a class="reference internal" href="#compile-args">COMPILE_ARGS</a></li>
+<li><a class="reference internal" href="#sim-args">SIM_ARGS</a></li>
+<li><a class="reference internal" href="#extra-args">EXTRA_ARGS</a></li>
+<li><a class="reference internal" href="#custom-compile-deps">CUSTOM_COMPILE_DEPS</a></li>
+<li><a class="reference internal" href="#custom-sim-deps">CUSTOM_SIM_DEPS</a></li>
+<li><a class="reference internal" href="#cocotb-nvc-trace">COCOTB_NVC_TRACE</a></li>
+<li><a class="reference internal" href="#sim-build">SIM_BUILD</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#environment-variables">Environment Variables</a><ul>
+<li><a class="reference internal" href="#toplevel">TOPLEVEL</a></li>
+<li><a class="reference internal" href="#random-seed">RANDOM_SEED</a></li>
+<li><a class="reference internal" href="#cocotb-ansi-output">COCOTB_ANSI_OUTPUT</a></li>
+<li><a class="reference internal" href="#module">MODULE</a></li>
+<li><a class="reference internal" href="#testcase">TESTCASE</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="quickstart.html"
+                        title="previous chapter">Quickstart Guide</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="coroutines.html"
+                        title="next chapter">Coroutines</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/building.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="coroutines.html" title="Coroutines"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="quickstart.html" title="Quickstart Guide"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>
