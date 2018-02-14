@@ -1,0 +1,139 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Test Bench Tools &#8212; cocotb 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Library Reference" href="library_reference.html" />
+    <link rel="prev" title="Triggers" href="triggers.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="library_reference.html" title="Library Reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="triggers.html" title="Triggers"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="test-bench-tools">
+<h1>Test Bench Tools<a class="headerlink" href="#test-bench-tools" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="logging">
+<h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
+<p>Cocotb extends the python logging library. Each dut, monitor, driver, and scoreboard (as well as any other function using the <strong>coroutine</strong> decorator) implements it’s own logging object, and each can be set to it’s own logging level.</p>
+<p>When logging hdl objects, beware that <strong>_log</strong> is the preferred way to use logging. This helps minimize the change of name collisions with an hdl log component with the python logging functionality.</p>
+</div>
+<div class="section" id="buses">
+<h2>Buses<a class="headerlink" href="#buses" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Busses are simply defined as collection of signals. The <strong>Bus</strong> class will automatically bundle any group of signals together that are named similar to dut.&lt;bus_name&gt;&lt;seperator&gt;&lt;signal_name&gt;. for instance,</dt>
+<dd>dut.stream_in_valid
+dut.stream_in_data</dd>
+</dl>
+<p>have a bus name of <code class="docutils literal notranslate"><span class="pre">stream_in</span></code>, a seperator of <code class="docutils literal notranslate"><span class="pre">_</span></code>, and signal names of <code class="docutils literal notranslate"><span class="pre">valid</span></code> and <code class="docutils literal notranslate"><span class="pre">data</span></code>. a list of signal names, or a dictionary mapping attribute names to signal names is also passed into the <strong>Bus</strong> class. Busses can have values driven onto them, be captured (returning a dictionary), or sampled and stored into a similar object.</p>
+</div>
+<div class="section" id="driving-busses">
+<h2>Driving Busses<a class="headerlink" href="#driving-busses" title="Permalink to this headline">¶</a></h2>
+<p>examples and specific bus implementation bus drivers (amba, avalon, xgmii, and others) exist in the <strong>Driver</strong> class enabling a test to append transactions to perform the serialization of transactions onto a physical interface.</p>
+</div>
+<div class="section" id="monitoring-busses">
+<h2>Monitoring Busses<a class="headerlink" href="#monitoring-busses" title="Permalink to this headline">¶</a></h2>
+<p>For our testbenches to actually be useful, we have to monitor some of these busses, and not just drive them. That’s where the <strong>Monitor</strong> class comes in, with prebuilt Monitors for <code class="docutils literal notranslate"><span class="pre">avalon</span></code> and <code class="docutils literal notranslate"><span class="pre">xgmii</span></code> busses. The Monitor class is a base class which you are expected to derive for your particular purpose. You must create a <cite>_monitor_recv()</cite> function which is responsible for determining 1) at what points in simulation to call the <cite>_recv()</cite> function, and 2) what transaction values to pass to be stored in the monitors receiving queue. Monitors are good for both outputs of the dut for verification, and for the inputs of the dut, to drive a test model of the dut to be compared to the actual dut. For this purpose, input monitors will often have a callback function passed that is a model. This model will often generate expected transactions, which are then compared using the <strong>Scoreboard</strong> class.</p>
+</div>
+<div class="section" id="tracking-testbench-errors">
+<h2>Tracking testbench errors<a class="headerlink" href="#tracking-testbench-errors" title="Permalink to this headline">¶</a></h2>
+<p>The <strong>Scoreboard</strong> class is used to compare the actual outputs to expected outputs. Monitors are added to the scoreboard for the actual outputs, and the expected outputs can be either a simple list, or a function that provides a transaction.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Test Bench Tools</a><ul>
+<li><a class="reference internal" href="#logging">Logging</a></li>
+<li><a class="reference internal" href="#buses">Buses</a></li>
+<li><a class="reference internal" href="#driving-busses">Driving Busses</a></li>
+<li><a class="reference internal" href="#monitoring-busses">Monitoring Busses</a></li>
+<li><a class="reference internal" href="#tracking-testbench-errors">Tracking testbench errors</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="triggers.html"
+                        title="previous chapter">Triggers</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="library_reference.html"
+                        title="next chapter">Library Reference</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/testbench_tools.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="library_reference.html" title="Library Reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="triggers.html" title="Triggers"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">cocotb 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, PotentialVentures.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>
