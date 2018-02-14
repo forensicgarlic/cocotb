@@ -144,7 +144,7 @@
 <span class="sd">                                converting to/from a string buffer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="n">bits</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">big_endian</span> <span class="o">=</span> <span class="n">bigEndian</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">binaryRepresentation</span> <span class="o">=</span> <span class="n">binaryRepresentation</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to</span> <span class="o">=</span> <span class="p">{</span>
@@ -161,7 +161,6 @@
 
         <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_bits</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BinaryValue.assign"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.assign">[docs]</a>    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Decides how best to assign the value to the vector</span>
@@ -371,7 +370,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span>
         <span class="k">elif</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING truncating value to match requested number of bits &quot;</span>
-                  <span class="s2">&quot;(</span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">))</span>
+                  <span class="s2">&quot; (</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">l</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span><span class="p">:]</span>
 
     <span class="n">buff</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_buff</span><span class="p">,</span> <span class="n">set_buff</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -392,18 +391,6 @@
 
     <span class="n">binstr</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_binstr</span><span class="p">,</span> <span class="n">set_binstr</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
                       <span class="s2">&quot;Access to the binary string&quot;</span><span class="p">)</span>
-
-<div class="viewcode-block" id="BinaryValue.get_bits"><a class="viewcode-back" href="../../library_reference.html#cocotb.binary.BinaryValue.get_bits">[docs]</a>    <span class="k">def</span> <span class="nf">get_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Attribute bits is the number of bits of the binary value&quot;&quot;&quot;</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span>
-
-    <span class="k">def</span> <span class="nf">set_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="n">bits</span>
-        <span class="k">if</span> <span class="n">bits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_bits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">)</span>
-
-    <span class="n">bits</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_bits</span><span class="p">,</span> <span class="n">set_bits</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="s2">&quot;Access to the number of bits of the binary value&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">hex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -561,11 +548,11 @@
     <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39; BinaryValue uses verilog/vhdl style slices as opposed to python</span>
 <span class="sd">        style&#39;&#39;&#39;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">get_python_integer_types</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;BinaryValue slices only accept string or integer values&#39;</span><span class="p">)</span>
 
         <span class="c1"># convert integer to string</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">get_python_integer_types</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
                 <span class="n">num_slice_bits</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">key</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>

@@ -28,3 +28,6 @@ Mentor Questa
 Cadence Incisive
 ----------------
 
+GHDL
+----
+Support is preliminary. 

@@ -129,7 +129,7 @@ COCOTB_ANSI_OUTPUT=0 supresses the ANSI output in the log messages
 MODULE
 ------
 
-The name of the module(s) to search for test functions.  Multiple modules can be specified using a comma-separated list.
+The name of the python module(s) to search for test functions.  Multiple modules can be specified using a comma-separated list.
 
 
 TESTCASE

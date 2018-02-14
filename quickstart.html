@@ -51,7 +51,7 @@
 <li>Python-dev packages</li>
 <li>GCC and associated development packages</li>
 <li>GNU Make</li>
-<li>A Verilog simulator</li>
+<li>A Verilog or VHDL simulator, depending on your source RTL code</li>
 </ul>
 <p>Internal development is performed on Linux Mint 17 (x64). We also use Redhat 6.5(x64). Other Redhat and Ubuntu based distributions (x32 and x64) should work too but due fragmented nature of Linux we can not test everything. Instructions are provided for the main distributions we use.</p>
 </div>
@@ -120,7 +120,7 @@ $&gt; <span class="nv">ARCH</span><span class="o">=</span>i686 make
 <h3>MAC Packages<a class="headerlink" href="#mac-packages" title="Permalink to this headline">¶</a></h3>
 <p>You need a few packages installed to get cocotb running on mac.
 Installing a package manager really helps things out here.</p>
-<p><a href="#id2"><span class="problematic" id="id3">Brew_</span></a> seems to be the most popular, so we’ll assume you have that installed.
+<p><a href="#id1"><span class="problematic" id="id2">Brew_</span></a> seems to be the most popular, so we’ll assume you have that installed.
 .. _Brew: <a class="reference external" href="http://www.brew.sh">http://www.brew.sh</a></p>
 </div>
 <div class="section" id="running-an-example">
@@ -138,7 +138,7 @@ $&gt; make
 <div class="section" id="running-a-vhdl-example">
 <h3>Running a VHDL example<a class="headerlink" href="#running-a-vhdl-example" title="Permalink to this headline">¶</a></h3>
 <p>The endian swapper example includes both a VHDL and Verilog RTL implementation.  The Cocotb testbench can execute against either implementation using VPI for Verilog and VHPI/FLI for VHDL.  To run the test suite against the VHDL implementation use the following command (a VHPI or FLI capable simulator must be used):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; make <span class="nv">SIM</span><span class="o">=</span>aldec <span class="nv">TOPLEVEL_LANG</span><span class="o">=</span>vhdl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; make <span class="nv">SIM</span><span class="o">=</span>ghdl <span class="nv">TOPLEVEL_LANG</span><span class="o">=</span>vhdl
 </pre></div>
 </div>
 </div>
@@ -155,8 +155,8 @@ rules which make it easy to get started.  We simply inform Cocotb of the
 source files we need compiling, the toplevel entity to instantiate and the
 python test script to load.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">VERILOG_SOURCES</span> <span class="o">=</span> <span class="k">$(</span>PWD<span class="k">)</span>/submodule.sv <span class="k">$(</span>PWD<span class="k">)</span>/my_design.sv
-<span class="nv">TOPLEVEL</span><span class="o">=</span>my_design
-<span class="nv">MODULE</span><span class="o">=</span>test_my_design
+<span class="nv">TOPLEVEL</span><span class="o">=</span>my_design <span class="c1">#the module name in your verilog or vhdl file</span>
+<span class="nv">MODULE</span><span class="o">=</span>test_my_design <span class="c1"># the name of the python test file</span>
 include <span class="k">$(</span>COCOTB<span class="k">)</span>/makefiles/Makefile.inc
 include <span class="k">$(</span>COCOTB<span class="k">)</span>/makefiles/Makefile.sim
 </pre></div>
@@ -165,8 +165,9 @@ include <span class="k">$(</span>COCOTB<span class="k">)</span>/makefiles/Makefi
 </div>
 <div class="section" id="creating-a-test">
 <h3>Creating a test<a class="headerlink" href="#creating-a-test" title="Permalink to this headline">¶</a></h3>
-<p>The test is written in Python.  Assuming we have a toplevel port called <code class="docutils literal notranslate"><span class="pre">clk</span></code>
-we could create a test file containing the following:</p>
+<p>The test is written in Python. Cocotb wraps your top level with the handle <strong>dut</strong>
+to be used in all python files referencing your RTL project. Assuming we have a
+toplevel port called <code class="docutils literal notranslate"><span class="pre">clk</span></code> we could create a test file containing the following:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cocotb</span>
 <span class="kn">from</span> <span class="nn">cocotb.triggers</span> <span class="kn">import</span> <span class="n">Timer</span>
 
@@ -207,12 +208,14 @@ The same mechanism can be used to access signals inside the design.</p>
 <span class="n">clk</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">1</span>
 
 <span class="c1"># Direct assignment through the hierarchy</span>
-<span class="n">dut</span><span class="o">.</span><span class="n">input_signal</span> <span class="o">=</span> <span class="mi">12</span>
+<span class="n">dut</span><span class="o">.</span><span class="n">input_signal</span> <span class="o">&lt;=</span> <span class="mi">12</span>
 
 <span class="c1"># Assign a value to a memory deep in the hierarchy</span>
-<span class="n">dut</span><span class="o">.</span><span class="n">sub_block</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">dut</span><span class="o">.</span><span class="n">sub_block</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">2</span>
 </pre></div>
 </div>
+<p>The “&lt;=” operator is overridden by cocotb to help make it more clear when an object
+being assigned a value is part of the RTL source as compared to the python test code.</p>
 </div>
 <div class="section" id="reading-values-from-signals">
 <h3>Reading values from signals<a class="headerlink" href="#reading-values-from-signals" title="Permalink to this headline">¶</a></h3>
@@ -220,11 +223,14 @@ The same mechanism can be used to access signals inside the design.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Read a value back from the dut</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">count</span> <span class="o">=</span> <span class="n">dut</span><span class="o">.</span><span class="n">counter</span><span class="o">.</span><span class="n">value</span>
 <span class="go">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">count</span><span class="o">.</span><span class="n">binstr</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">count</span><span class="o">.</span><span class="n">binstr</span><span class="p">)</span>
 <span class="go">1X1010</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Resolve the value to an integer (X or Z treated as 0)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">count</span><span class="o">.</span><span class="n">integer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">count</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
 <span class="go">42</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Show number of bits in a value</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">count</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
+<span class="go">6</span>
 </pre></div>
 </div>
 <p>We can also cast the signal handle directly to an integer:</p>
@@ -263,21 +269,6 @@ The same mechanism can be used to access signals inside the design.</p>
 </pre></div>
 </div>
 </div>
-<div class="section" id="id1">
-<h3>Creating a test<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cocotb</span>
-<span class="kn">from</span> <span class="nn">cocotb.triggers</span> <span class="kn">import</span> <span class="n">Timer</span>
-
-<span class="nd">@cocotb.test</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">my_first_test</span><span class="p">(</span><span class="n">dut</span><span class="p">):</span>
-
-    <span class="c1"># drive the reset signal on the dut</span>
-    <span class="n">dut</span><span class="o">.</span><span class="n">reset_n</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-    <span class="k">yield</span> <span class="n">Timer</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
-    <span class="n">dut</span><span class="o">.</span><span class="n">reset_n</span> <span class="o">&lt;=</span> <span class="mi">1</span>
-</pre></div>
-</div>
-</div>
 </div>
 </div>
 
@@ -307,7 +298,6 @@ The same mechanism can be used to access signals inside the design.</p>
 <li><a class="reference internal" href="#assigning-values-to-signals">Assigning values to signals</a></li>
 <li><a class="reference internal" href="#reading-values-from-signals">Reading values from signals</a></li>
 <li><a class="reference internal" href="#parallel-and-sequential-execution-of-coroutines">Parallel and sequential execution of coroutines</a></li>
-<li><a class="reference internal" href="#id1">Creating a test</a></li>
 </ul>
 </li>
 </ul>

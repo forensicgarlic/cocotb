@@ -67,7 +67,7 @@ resume if <em>any</em> of them fires:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cocotb.coroutine</span>
 <span class="k">def</span> <span class="nf">packet_with_timeout</span><span class="p">(</span><span class="n">monitor</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wait for a packet but timeout if nothing arrives&quot;&quot;&quot;</span>
-    <span class="k">yield</span> <span class="p">[</span><span class="n">Timer</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span> <span class="n">monitor</span><span class="o">.</span><span class="n">wait_for_recv</span><span class="p">()]</span>
+    <span class="k">yield</span> <span class="p">[</span><span class="n">Timer</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">ready</span><span class="p">)]</span>
 </pre></div>
 </div>
 <p>The trigger that caused execution to resume is passed back to the coroutine,
@@ -76,11 +76,14 @@ allowing them to distinguish which trigger fired:</p>
 <span class="k">def</span> <span class="nf">packet_with_timeout</span><span class="p">(</span><span class="n">monitor</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wait for a packet but timeout if nothing arrives&quot;&quot;&quot;</span>
     <span class="n">tout_trigger</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="k">yield</span> <span class="p">[</span><span class="n">tout_trigger</span><span class="p">,</span> <span class="n">monitor</span><span class="o">.</span><span class="n">wait_for_recv</span><span class="p">()]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">yield</span> <span class="p">[</span><span class="n">tout_trigger</span><span class="p">,</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">ready</span><span class="p">)]</span>
     <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="n">tout_trigger</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">TestFailure</span><span class="p">(</span><span class="s2">&quot;Timed out waiting for packet&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Coroutines can be forked for parallel operation within a function of that code and the forked code.</p>
+<p>Coroutines can be joined to end parallel operation within a function.</p>
+<p>Coroutines can be killed before they complete, forcing their completion before they’d naturally end.</p>
 </div>
 
 

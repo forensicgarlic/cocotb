@@ -15,7 +15,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Library Reference" href="library_reference.html" />
+    <link rel="next" title="Test Bench Tools" href="testbench_tools.html" />
     <link rel="prev" title="Coroutines" href="coroutines.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -25,7 +25,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="library_reference.html" title="Library Reference"
+          <a href="testbench_tools.html" title="Test Bench Tools"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="coroutines.html" title="Coroutines"
@@ -41,7 +41,7 @@
             
   <div class="section" id="triggers">
 <h1>Triggers<a class="headerlink" href="#triggers" title="Permalink to this headline">¶</a></h1>
-<p>Triggers are used to indicate when the scheduler should resume coroutine execution.  Typically a coroutine will <strong>yield</strong> a trigger or a list of triggers.</p>
+<p>Triggers are used to indicate when the cocotb scheduler should resume coroutine execution.  Typically a coroutine will <strong>yield</strong> a trigger or a list of triggers, while it’s waiting for them to complete.</p>
 <div class="section" id="simulation-timing">
 <h2>Simulation Timing<a class="headerlink" href="#simulation-timing" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="timer-time">
@@ -54,7 +54,7 @@
 </div>
 <div class="section" id="readonly">
 <h3>ReadOnly()<a class="headerlink" href="#readonly" title="Permalink to this headline">¶</a></h3>
-<p>Registers a callback which will continue execution of the coroutine when the current simulation timestep moves to the ReadOnly phase.  Useful for monitors which need to wait for all processes to execute (both RTL and cocotb) to ensure sampled signal values are final.</p>
+<p>Registers a callback which will continue execution of the coroutine when the current simulation timestep moves to the ReadOnly phase of the rtl simulator. The ReadOnly phase is entered when the current timestep no longer has any further delta steps. This should be point where all the signal values are stable as there are no more rtl events scheduled for the timestep. The simulator should not allow scheduling of more events in this timestep. Useful for monitors which need to wait for all processes to execute (both RTL and cocotb) to ensure sampled signal values are final.</p>
 </div>
 </div>
 <div class="section" id="signal-related">
@@ -127,8 +127,8 @@
   <p class="topless"><a href="coroutines.html"
                         title="previous chapter">Coroutines</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="library_reference.html"
-                        title="next chapter">Library Reference</a></p>
+  <p class="topless"><a href="testbench_tools.html"
+                        title="next chapter">Test Bench Tools</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -159,7 +159,7 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="library_reference.html" title="Library Reference"
+          <a href="testbench_tools.html" title="Test Bench Tools"
              >next</a> |</li>
         <li class="right" >
           <a href="coroutines.html" title="Coroutines"
