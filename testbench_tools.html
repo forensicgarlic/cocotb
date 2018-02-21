@@ -104,126 +104,105 @@
 <div class="section" id="driving-busses">
 <h2>Driving Busses<a class="headerlink" href="#driving-busses" title="Permalink to this headline">¶</a></h2>
 <p>examples and specific bus implementation bus drivers (amba, avalon, xgmii, and others) exist in the <code class="xref py py-class docutils literal notranslate"><span class="pre">Driver</span></code> class enabling a test to append transactions to perform the serialization of transactions onto a physical interface. Here’s an example using the avalon bus driver in the endian swapper example</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">EndianSwapperTB</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dut</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="n">dut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream_in</span> <span class="o">=</span> <span class="n">AvalonSTDriver</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">run_test</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="n">data_in</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">config_coroutine</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">idle_inserter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+             <span class="n">backpressure_inserter</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">cocotb</span><span class="o">.</span><span class="n">fork</span><span class="p">(</span><span class="n">Clock</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">())</span>
+    <span class="n">tb</span> <span class="o">=</span> <span class="n">EndianSwapperTB</span><span class="p">(</span><span class="n">dut</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="n">tb</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">dut</span><span class="o">.</span><span class="n">stream_out_ready</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">idle_inserter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">tb</span><span class="o">.</span><span class="n">stream_in</span><span class="o">.</span><span class="n">set_valid_generator</span><span class="p">(</span><span class="n">idle_inserter</span><span class="p">())</span>
+
+    <span class="c1"># Send in the packets</span>
+    <span class="k">for</span> <span class="n">transaction</span> <span class="ow">in</span> <span class="n">data_in</span><span class="p">():</span>
+        <span class="k">yield</span> <span class="n">tb</span><span class="o">.</span><span class="n">stream_in</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>&#64;cocotb.coroutine</p>
-<p>class EndianSwapperTB(object):</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>def __init__(self, dut, debug=False):</dt>
-<dd>self.dut = dut
-self.stream_in = AvalonSTDriver(dut, “stream_in”, dut.clk)</dd>
-</dl>
-</div></blockquote>
-<dl class="docutils">
-<dt>def run_test(dut, data_in=None, config_coroutine=None, idle_inserter=None,</dt>
-<dd><blockquote class="first">
-<div>backpressure_inserter=None):</div></blockquote>
-<p>cocotb.fork(Clock(dut.clk, 5000).start())
-tb = EndianSwapperTB(dut)</p>
-<p>yield tb.reset()
-dut.stream_out_ready &lt;= 1</p>
-<dl class="docutils">
-<dt>if idle_inserter is not None:</dt>
-<dd>tb.stream_in.set_valid_generator(idle_inserter())</dd>
-</dl>
-<p># Send in the packets
-for transaction in data_in():</p>
-<blockquote class="last">
-<div>yield tb.stream_in.send(transaction)</div></blockquote>
-</dd>
-</dl>
 </div>
 <div class="section" id="monitoring-busses">
 <h2>Monitoring Busses<a class="headerlink" href="#monitoring-busses" title="Permalink to this headline">¶</a></h2>
 <p>For our testbenches to actually be useful, we have to monitor some of these busses, and not just drive them. That’s where the <code class="xref py py-class docutils literal notranslate"><span class="pre">Monitor</span></code> class comes in, with prebuilt Monitors for <strong>avalon</strong> and <strong>xgmii</strong> busses. The Monitor class is a base class which you are expected to derive for your particular purpose. You must create a <cite>_monitor_recv()</cite> function which is responsible for determining 1) at what points in simulation to call the <cite>_recv()</cite> function, and 2) what transaction values to pass to be stored in the monitors receiving queue. Monitors are good for both outputs of the dut for verification, and for the inputs of the dut, to drive a test model of the dut to be compared to the actual dut. For this purpose, input monitors will often have a callback function passed that is a model. This model will often generate expected transactions, which are then compared using the <strong>Scoreboard</strong> class.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ==============================================================================</span>
+<span class="k">class</span> <span class="nc">BitMonitor</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Observes single input or output of DUT.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">clock</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="n">signal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
+        <span class="n">Monitor</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_monitor_recv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">clkedge</span> <span class="o">=</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="c1"># Capture signal at rising edge of clock</span>
+            <span class="k">yield</span> <span class="n">clkedge</span>
+            <span class="n">vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recv</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
+
+<span class="c1"># ==============================================================================</span>
+<span class="k">def</span> <span class="nf">input_gen</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Generator for input data applied by BitDriver&quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">),</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="c1"># ==============================================================================</span>
+<span class="k">class</span> <span class="nc">DFF_TB</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dut</span><span class="p">,</span> <span class="n">init_val</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="n">dut</span>
+
+        <span class="c1"># Create input driver and output monitor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_drv</span> <span class="o">=</span> <span class="n">BitDriver</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">input_gen</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_mon</span> <span class="o">=</span> <span class="n">BitMonitor</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+
+        <span class="c1"># Create a scoreboard on the outputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span> <span class="o">=</span> <span class="p">[</span> <span class="n">init_val</span> <span class="p">]</span>
+
+        <span class="c1"># Reconstruct the input transactions from the pins</span>
+        <span class="c1"># and send them to our &#39;model&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_mon</span> <span class="o">=</span> <span class="n">BitMonitor</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Model the DUT based on the input transaction.&quot;&quot;&quot;</span>
+        <span class="c1"># Do not append an output transaction for the last clock cycle of the</span>
+        <span class="c1"># simulation, that is, after stop() has been called.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
 </pre></div>
 </div>
-<p># ==============================================================================
-class BitMonitor(Monitor):</p>
-<blockquote>
-<div><p>“”“Observes single input or output of DUT.”“”
-def __init__(self, name, signal, clock, callback=None, event=None):</p>
-<blockquote>
-<div>self.name = name
-self.signal = signal
-self.clock = clock
-Monitor.__init__(self, callback, event)</div></blockquote>
-<p>&#64;coroutine
-def _monitor_recv(self):</p>
-<blockquote>
-<div><p>clkedge = RisingEdge(self.clock)</p>
-<dl class="docutils">
-<dt>while True:</dt>
-<dd># Capture signal at rising edge of clock
-yield clkedge
-vec = self.signal.value
-self._recv(vec)</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p># ==============================================================================
-def input_gen():</p>
-<blockquote>
-<div><p>“”“Generator for input data applied by BitDriver”“”
-while True:</p>
-<blockquote>
-<div>yield random.randint(1,5), random.randint(1,5)</div></blockquote>
-</div></blockquote>
-<p># ==============================================================================
-class DFF_TB(object):</p>
-<blockquote>
-<div><p>def __init__(self, dut, init_val):</p>
-<blockquote>
-<div><p>self.dut = dut</p>
-<p># Create input driver and output monitor
-self.input_drv = BitDriver(dut.d, dut.c, input_gen())
-self.output_mon = BitMonitor(“output”, dut.q, dut.c)</p>
-<p># Create a scoreboard on the outputs
-self.expected_output = [ init_val ]</p>
-<p># Reconstruct the input transactions from the pins
-# and send them to our ‘model’
-self.input_mon = BitMonitor(“input”, dut.d, dut.c, callback=self.model)</p>
-</div></blockquote>
-<dl class="docutils">
-<dt>def model(self, transaction):</dt>
-<dd><p class="first">“”“Model the DUT based on the input transaction.”“”
-# Do not append an output transaction for the last clock cycle of the
-# simulation, that is, after stop() has been called.
-if not self.stopped:</p>
-<blockquote class="last">
-<div>self.expected_output.append(transaction)</div></blockquote>
-</dd>
-</dl>
-</div></blockquote>
 </div>
 <div class="section" id="tracking-testbench-errors">
 <h2>Tracking testbench errors<a class="headerlink" href="#tracking-testbench-errors" title="Permalink to this headline">¶</a></h2>
 <p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">Scoreboard</span></code> class is used to compare the actual outputs to expected outputs. Monitors are added to the scoreboard for the actual outputs, and the expected outputs can be either a simple list, or a function that provides a transaction. Here’s some code from the <strong>DFF</strong> example, similar to above with the scoreboard added.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DFF_TB</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dut</span><span class="p">,</span> <span class="n">init_val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="n">dut</span>
+
+        <span class="c1"># Create input driver and output monitor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_drv</span> <span class="o">=</span> <span class="n">BitDriver</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">input_gen</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_mon</span> <span class="o">=</span> <span class="n">BitMonitor</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+
+        <span class="c1"># Create a scoreboard on the outputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span> <span class="o">=</span> <span class="p">[</span> <span class="n">init_val</span> <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoreboard</span> <span class="o">=</span> <span class="n">Scoreboard</span><span class="p">(</span><span class="n">dut</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoreboard</span><span class="o">.</span><span class="n">add_interface</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expected_output</span><span class="p">)</span>
+
+        <span class="c1"># Reconstruct the input transactions from the pins</span>
+        <span class="c1"># and send them to our &#39;model&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_mon</span> <span class="o">=</span> <span class="n">BitMonitor</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">dut</span><span class="o">.</span><span class="n">c</span><span class="p">,</span><span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
-<dl class="docutils">
-<dt>class DFF_TB(object):</dt>
-<dd><dl class="first last docutils">
-<dt>def __init__(self, dut, init_val):</dt>
-<dd><p class="first">self.dut = dut</p>
-<p># Create input driver and output monitor
-self.input_drv = BitDriver(dut.d, dut.c, input_gen())
-self.output_mon = BitMonitor(“output”, dut.q, dut.c)</p>
-<p># Create a scoreboard on the outputs
-self.expected_output = [ init_val ]
-self.scoreboard = Scoreboard(dut)
-self.scoreboard.add_interface(self.output_mon, self.expected_output)</p>
-<p class="last"># Reconstruct the input transactions from the pins
-# and send them to our ‘model’
-self.input_mon = BitMonitor(“input”, dut.d, dut.c,callback=self.model)</p>
-</dd>
-</dl>
-</dd>
-</dl>
 </div>
 </div>
 
