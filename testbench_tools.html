@@ -104,7 +104,9 @@
 <div class="section" id="driving-busses">
 <h2>Driving Busses<a class="headerlink" href="#driving-busses" title="Permalink to this headline">¶</a></h2>
 <p>examples and specific bus implementation bus drivers (amba, avalon, xgmii, and others) exist in the <code class="xref py py-class docutils literal notranslate"><span class="pre">Driver</span></code> class enabling a test to append transactions to perform the serialization of transactions onto a physical interface. Here’s an example using the avalon bus driver in the endian swapper example</p>
-<p>..code-block:: python</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
 <p>&#64;cocotb.coroutine</p>
 <p>class EndianSwapperTB(object):</p>
 <blockquote>
@@ -135,11 +137,93 @@ for transaction in data_in():</p>
 </div>
 <div class="section" id="monitoring-busses">
 <h2>Monitoring Busses<a class="headerlink" href="#monitoring-busses" title="Permalink to this headline">¶</a></h2>
-<p>For our testbenches to actually be useful, we have to monitor some of these busses, and not just drive them. That’s where the <strong>Monitor</strong> class comes in, with prebuilt Monitors for <code class="docutils literal notranslate"><span class="pre">avalon</span></code> and <code class="docutils literal notranslate"><span class="pre">xgmii</span></code> busses. The Monitor class is a base class which you are expected to derive for your particular purpose. You must create a <cite>_monitor_recv()</cite> function which is responsible for determining 1) at what points in simulation to call the <cite>_recv()</cite> function, and 2) what transaction values to pass to be stored in the monitors receiving queue. Monitors are good for both outputs of the dut for verification, and for the inputs of the dut, to drive a test model of the dut to be compared to the actual dut. For this purpose, input monitors will often have a callback function passed that is a model. This model will often generate expected transactions, which are then compared using the <strong>Scoreboard</strong> class.</p>
+<p>For our testbenches to actually be useful, we have to monitor some of these busses, and not just drive them. That’s where the <code class="xref py py-class docutils literal notranslate"><span class="pre">Monitor</span></code> class comes in, with prebuilt Monitors for <strong>avalon</strong> and <strong>xgmii</strong> busses. The Monitor class is a base class which you are expected to derive for your particular purpose. You must create a <cite>_monitor_recv()</cite> function which is responsible for determining 1) at what points in simulation to call the <cite>_recv()</cite> function, and 2) what transaction values to pass to be stored in the monitors receiving queue. Monitors are good for both outputs of the dut for verification, and for the inputs of the dut, to drive a test model of the dut to be compared to the actual dut. For this purpose, input monitors will often have a callback function passed that is a model. This model will often generate expected transactions, which are then compared using the <strong>Scoreboard</strong> class.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<p># ==============================================================================
+class BitMonitor(Monitor):</p>
+<blockquote>
+<div><p>“”“Observes single input or output of DUT.”“”
+def __init__(self, name, signal, clock, callback=None, event=None):</p>
+<blockquote>
+<div>self.name = name
+self.signal = signal
+self.clock = clock
+Monitor.__init__(self, callback, event)</div></blockquote>
+<p>&#64;coroutine
+def _monitor_recv(self):</p>
+<blockquote>
+<div><p>clkedge = RisingEdge(self.clock)</p>
+<dl class="docutils">
+<dt>while True:</dt>
+<dd># Capture signal at rising edge of clock
+yield clkedge
+vec = self.signal.value
+self._recv(vec)</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+<p># ==============================================================================
+def input_gen():</p>
+<blockquote>
+<div><p>“”“Generator for input data applied by BitDriver”“”
+while True:</p>
+<blockquote>
+<div>yield random.randint(1,5), random.randint(1,5)</div></blockquote>
+</div></blockquote>
+<p># ==============================================================================
+class DFF_TB(object):</p>
+<blockquote>
+<div><p>def __init__(self, dut, init_val):</p>
+<blockquote>
+<div><p>self.dut = dut</p>
+<p># Create input driver and output monitor
+self.input_drv = BitDriver(dut.d, dut.c, input_gen())
+self.output_mon = BitMonitor(“output”, dut.q, dut.c)</p>
+<p># Create a scoreboard on the outputs
+self.expected_output = [ init_val ]</p>
+<p># Reconstruct the input transactions from the pins
+# and send them to our ‘model’
+self.input_mon = BitMonitor(“input”, dut.d, dut.c, callback=self.model)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>def model(self, transaction):</dt>
+<dd><p class="first">“”“Model the DUT based on the input transaction.”“”
+# Do not append an output transaction for the last clock cycle of the
+# simulation, that is, after stop() has been called.
+if not self.stopped:</p>
+<blockquote class="last">
+<div>self.expected_output.append(transaction)</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
 </div>
 <div class="section" id="tracking-testbench-errors">
 <h2>Tracking testbench errors<a class="headerlink" href="#tracking-testbench-errors" title="Permalink to this headline">¶</a></h2>
-<p>The <strong>Scoreboard</strong> class is used to compare the actual outputs to expected outputs. Monitors are added to the scoreboard for the actual outputs, and the expected outputs can be either a simple list, or a function that provides a transaction.</p>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">Scoreboard</span></code> class is used to compare the actual outputs to expected outputs. Monitors are added to the scoreboard for the actual outputs, and the expected outputs can be either a simple list, or a function that provides a transaction. Here’s some code from the <strong>DFF</strong> example, similar to above with the scoreboard added.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>class DFF_TB(object):</dt>
+<dd><dl class="first last docutils">
+<dt>def __init__(self, dut, init_val):</dt>
+<dd><p class="first">self.dut = dut</p>
+<p># Create input driver and output monitor
+self.input_drv = BitDriver(dut.d, dut.c, input_gen())
+self.output_mon = BitMonitor(“output”, dut.q, dut.c)</p>
+<p># Create a scoreboard on the outputs
+self.expected_output = [ init_val ]
+self.scoreboard = Scoreboard(dut)
+self.scoreboard.add_interface(self.output_mon, self.expected_output)</p>
+<p class="last"># Reconstruct the input transactions from the pins
+# and send them to our ‘model’
+self.input_mon = BitMonitor(“input”, dut.d, dut.c,callback=self.model)</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </div>
 </div>
 
