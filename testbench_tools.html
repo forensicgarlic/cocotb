@@ -43,7 +43,7 @@
 <h1>Test Bench Tools<a class="headerlink" href="#test-bench-tools" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="logging">
 <h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
-<p>Cocotb extends the python logging library. Each dut, monitor, driver, and scoreboard (as well as any other function using the <strong>coroutine</strong> decorator) implements it’s own logging object, and each can be set to it’s own logging level. Within a dut, each heirarchical object can also have individual logging levels set.</p>
+<p>Cocotb extends the python logging library. Each dut, monitor, driver, and scoreboard (as well as any other function using the <strong>coroutine</strong> decorator) implements it’s own <code class="xref py py-class docutils literal notranslate"><span class="pre">logging</span></code> object, and each can be set to it’s own logging level. Within a dut, each heirarchical object can also have individual logging levels set.</p>
 <p>When logging hdl objects, beware that <strong>_log</strong> is the preferred way to use logging. This helps minimize the change of name collisions with an hdl log component with the python logging functionality.</p>
 <p>Log printing levels can also be set on a per object basis.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">EndianSwapperTB</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -64,16 +64,17 @@
 <p>And when the logging is actually called</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">AvalonSTPkts</span><span class="p">(</span><span class="n">BusMonitor</span><span class="p">):</span>
 <span class="o">...</span>
-<span class="nd">@coroutine</span>
-<span class="k">def</span> <span class="nf">_monitor_recv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="o">...</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Received a packet of </span><span class="si">%d</span><span class="s2"> bytes&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">pkt</span><span class="p">))</span>
-<span class="nd">@cocotb.coroutine</span>
+    <span class="nd">@coroutine</span>
+    <span class="k">def</span> <span class="nf">_monitor_recv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="o">...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Received a packet of </span><span class="si">%d</span><span class="s2"> bytes&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">pkt</span><span class="p">))</span>
+
 <span class="k">class</span> <span class="nc">Scoreboard</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="o">...</span>
     <span class="k">def</span> <span class="nf">add_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="o">...</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created with reorder_depth </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">reorder_depth</span><span class="p">)</span>
+
 <span class="k">class</span> <span class="nc">EndianSwapTB</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="o">...</span>
     <span class="nd">@cocotb.coroutine</span>
@@ -90,12 +91,15 @@
 </div>
 <div class="section" id="buses">
 <h2>Buses<a class="headerlink" href="#buses" title="Permalink to this headline">¶</a></h2>
-<dl class="docutils">
-<dt>Busses are simply defined as collection of signals. The <strong>Bus</strong> class will automatically bundle any group of signals together that are named similar to dut.&lt;bus_name&gt;&lt;seperator&gt;&lt;signal_name&gt;. for instance,</dt>
-<dd>dut.stream_in_valid
-dut.stream_in_data</dd>
-</dl>
-<p>have a bus name of <code class="docutils literal notranslate"><span class="pre">stream_in</span></code>, a seperator of <code class="docutils literal notranslate"><span class="pre">_</span></code>, and signal names of <code class="docutils literal notranslate"><span class="pre">valid</span></code> and <code class="docutils literal notranslate"><span class="pre">data</span></code>. a list of signal names, or a dictionary mapping attribute names to signal names is also passed into the <strong>Bus</strong> class. Busses can have values driven onto them, be captured (returning a dictionary), or sampled and stored into a similar object.</p>
+<p>Busses are simply defined as collection of signals. The <code class="xref py py-class docutils literal notranslate"><span class="pre">Bus</span></code> class will automatically bundle any group of signals together that are named similar to dut.&lt;bus_name&gt;&lt;seperator&gt;&lt;signal_name&gt;. for instance,
+.. code-block:: python</p>
+<blockquote>
+<div>dut.stream_in_valid
+dut.stream_in_data</div></blockquote>
+<p>have a bus name of <code class="docutils literal notranslate"><span class="pre">stream_in</span></code>, a seperator of <code class="docutils literal notranslate"><span class="pre">_</span></code>, and signal names of <code class="docutils literal notranslate"><span class="pre">valid</span></code> and <code class="docutils literal notranslate"><span class="pre">data</span></code>. a list of signal names, or a dictionary mapping attribute names to signal names is also passed into the <code class="xref py py-class docutils literal notranslate"><span class="pre">Bus</span></code> class. Busses can have values driven onto them, be captured (returning a dictionary), or sampled and stored into a similar object.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stream_in_bus</span> <span class="o">=</span> <span class="n">Bus</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">])</span> <span class="c1"># _ is the default seperator</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="driving-busses">
 <h2>Driving Busses<a class="headerlink" href="#driving-busses" title="Permalink to this headline">¶</a></h2>
