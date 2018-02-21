@@ -120,7 +120,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">sig_name</span> <span class="ow">in</span> <span class="n">_build_sig_attr_dict</span><span class="p">(</span><span class="n">signals</span><span class="p">)</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">sig_name</span> <span class="ow">in</span> <span class="n">_build_sig_attr_dict</span><span class="p">(</span><span class="n">signals</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
                 <span class="n">signame</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="n">bus_separator</span> <span class="o">+</span> <span class="n">sig_name</span>
             <span class="k">else</span><span class="p">:</span>
@@ -133,7 +133,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span><span class="p">[</span><span class="n">attr_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
 
         <span class="c1"># Also support a set of optional signals that don&#39;t have to be present</span>
-        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">sig_name</span> <span class="ow">in</span> <span class="n">_build_sig_attr_dict</span><span class="p">(</span><span class="n">optional_signals</span><span class="p">)</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">sig_name</span> <span class="ow">in</span> <span class="n">_build_sig_attr_dict</span><span class="p">(</span><span class="n">optional_signals</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
                 <span class="n">signame</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="n">bus_separator</span> <span class="o">+</span> <span class="n">sig_name</span>
             <span class="k">else</span><span class="p">:</span>
@@ -166,7 +166,7 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            AttributeError</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">hdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">hdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">strict</span><span class="p">:</span>
                     <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Unable to drive onto </span><span class="si">{0}</span><span class="s2">.</span><span class="si">{1}</span><span class="s2"> because </span><span class="si">{2}</span><span class="s2"> is missing &quot;</span>
@@ -187,7 +187,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            A dict that supports access by attribute, each attribute corresponds to each signal&#39;s value</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">class</span> <span class="nc">_Capture</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span> 
+        <span class="k">class</span> <span class="nc">_Capture</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
             <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
                     <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
@@ -201,7 +201,7 @@
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;modifying a bus capture is not supported&#39;</span><span class="p">)</span>
 
         <span class="n">_capture</span> <span class="o">=</span> <span class="n">_Capture</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">hdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">hdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">_capture</span><span class="p">[</span><span class="n">attr_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">hdl</span><span class="o">.</span><span class="n">value</span>
 </div>
         <span class="k">return</span> <span class="n">_capture</span>
