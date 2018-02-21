@@ -89,21 +89,49 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="buses">
-<h2>Buses<a class="headerlink" href="#buses" title="Permalink to this headline">¶</a></h2>
-<p>Busses are simply defined as collection of signals. The <code class="xref py py-class docutils literal notranslate"><span class="pre">Bus</span></code> class will automatically bundle any group of signals together that are named similar to dut.&lt;bus_name&gt;&lt;seperator&gt;&lt;signal_name&gt;. for instance,
-.. code-block:: python</p>
-<blockquote>
-<div>dut.stream_in_valid
-dut.stream_in_data</div></blockquote>
+<div class="section" id="busses">
+<h2>Busses<a class="headerlink" href="#busses" title="Permalink to this headline">¶</a></h2>
+<p>Busses are simply defined as collection of signals. The <code class="xref py py-class docutils literal notranslate"><span class="pre">Bus</span></code> class will automatically bundle any group of signals together that are named similar to dut.&lt;bus_name&gt;&lt;seperator&gt;&lt;signal_name&gt;. for instance,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dut</span><span class="o">.</span><span class="n">stream_in_valid</span>
+<span class="n">dut</span><span class="o">.</span><span class="n">stream_in_data</span>
+</pre></div>
+</div>
 <p>have a bus name of <code class="docutils literal notranslate"><span class="pre">stream_in</span></code>, a seperator of <code class="docutils literal notranslate"><span class="pre">_</span></code>, and signal names of <code class="docutils literal notranslate"><span class="pre">valid</span></code> and <code class="docutils literal notranslate"><span class="pre">data</span></code>. a list of signal names, or a dictionary mapping attribute names to signal names is also passed into the <code class="xref py py-class docutils literal notranslate"><span class="pre">Bus</span></code> class. Busses can have values driven onto them, be captured (returning a dictionary), or sampled and stored into a similar object.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stream_in_bus</span> <span class="o">=</span> <span class="n">Bus</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">])</span> <span class="c1"># _ is the default seperator</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stream_in_bus</span> <span class="o">=</span> <span class="n">Bus</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;stream_in&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">])</span> <span class="c1"># &#39;_&#39; is the default seperator</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="driving-busses">
 <h2>Driving Busses<a class="headerlink" href="#driving-busses" title="Permalink to this headline">¶</a></h2>
-<p>examples and specific bus implementation bus drivers (amba, avalon, xgmii, and others) exist in the <strong>Driver</strong> class enabling a test to append transactions to perform the serialization of transactions onto a physical interface.</p>
+<p>examples and specific bus implementation bus drivers (amba, avalon, xgmii, and others) exist in the <code class="xref py py-class docutils literal notranslate"><span class="pre">Driver</span></code> class enabling a test to append transactions to perform the serialization of transactions onto a physical interface. Here’s an example using the avalon bus driver in the endian swapper example</p>
+<p>..code-block:: python</p>
+<p>&#64;cocotb.coroutine</p>
+<p>class EndianSwapperTB(object):</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>def __init__(self, dut, debug=False):</dt>
+<dd>self.dut = dut
+self.stream_in = AvalonSTDriver(dut, “stream_in”, dut.clk)</dd>
+</dl>
+</div></blockquote>
+<dl class="docutils">
+<dt>def run_test(dut, data_in=None, config_coroutine=None, idle_inserter=None,</dt>
+<dd><blockquote class="first">
+<div>backpressure_inserter=None):</div></blockquote>
+<p>cocotb.fork(Clock(dut.clk, 5000).start())
+tb = EndianSwapperTB(dut)</p>
+<p>yield tb.reset()
+dut.stream_out_ready &lt;= 1</p>
+<dl class="docutils">
+<dt>if idle_inserter is not None:</dt>
+<dd>tb.stream_in.set_valid_generator(idle_inserter())</dd>
+</dl>
+<p># Send in the packets
+for transaction in data_in():</p>
+<blockquote class="last">
+<div>yield tb.stream_in.send(transaction)</div></blockquote>
+</dd>
+</dl>
 </div>
 <div class="section" id="monitoring-busses">
 <h2>Monitoring Busses<a class="headerlink" href="#monitoring-busses" title="Permalink to this headline">¶</a></h2>
@@ -125,7 +153,7 @@ dut.stream_in_data</div></blockquote>
   <ul>
 <li><a class="reference internal" href="#">Test Bench Tools</a><ul>
 <li><a class="reference internal" href="#logging">Logging</a></li>
-<li><a class="reference internal" href="#buses">Buses</a></li>
+<li><a class="reference internal" href="#busses">Busses</a></li>
 <li><a class="reference internal" href="#driving-busses">Driving Busses</a></li>
 <li><a class="reference internal" href="#monitoring-busses">Monitoring Busses</a></li>
 <li><a class="reference internal" href="#tracking-testbench-errors">Tracking testbench errors</a></li>
