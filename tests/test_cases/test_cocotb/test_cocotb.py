@@ -618,11 +618,15 @@ def test_clock_cycles(dut):
 
     yield RisingEdge(clk)
 
-    dut.log.info("After one edge")
+    dut._log.info("After one edge")
 
     yield ClockCycles(clk, 10)
 
-    dut.log.info("After 10 edges")
+    dut._log.info("After 10 more rising edges")
+
+    yield ClockCycles(clk, 10, rising=False)
+
+    dut._log.info("After 10 more falling edges")
 
 @cocotb.test()
 def test_binary_value(dut):
